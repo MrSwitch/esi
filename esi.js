@@ -5,11 +5,13 @@
 // @author Andrew Dodson
 // @since 07/2014
 
+(function(){
+
 
 // Find all ESI fragments on the page
 // e.g. <esi:include src="http://resources.com/markup"></esi:include>
 
-function esi(){
+function esi(document){
 
 	var tags = document.getElementsByTagName('esi:include');
 
@@ -22,10 +24,16 @@ function esi(){
 }
 
 //
-// initiate ESI
+// Expose
+//
+window.esi = esi;
+
+
+//
+// initiate ESI on the document object
 //
 
-esi();
+esi(document);
 
 //
 // Process an esi tag
@@ -125,3 +133,8 @@ function load(url, callback){
 		}
 	}
 }
+
+
+
+// EOF esi
+})();

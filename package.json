@@ -1,0 +1,25 @@
+{
+  "name": "esi",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "promise": "~5.0.0"
+  },
+  "devDependencies": {
+    "mocha": "~1.20.1",
+    "expect.js": "~0.3.1"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MrSwitch/esi.git"
+  },
+  "author": "",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/MrSwitch/esi/issues"
+  }
+}
