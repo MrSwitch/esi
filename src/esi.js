@@ -9,11 +9,11 @@ var http = require('http');
 
 
 var reg_esi_tags = /<(esi\:include)\s([^>]+)><\/\1>/ig,
+	reg_esi_tag_split = /<esi\:include\s[^>]+><\/esi\:include>/ig,
 	reg_esi_tag = /<(esi\:include)\s([^>]+)><\/\1>/i;
 
 
 module.exports = function ESI( body, encoding ){
-
 
 	// Create a series of Promise object
 
@@ -27,7 +27,7 @@ module.exports = function ESI( body, encoding ){
 
 	// Split the current string into parts
 
-	var parts = body.split(reg_esi_tags);
+	var parts = body.split(reg_esi_tag_split);
 
 
 	// Loop through and process each of the ESI fragments
@@ -54,10 +54,7 @@ module.exports = function ESI( body, encoding ){
 
 			}
 
-
-			// Make an HTTP request using the tag.src attribute
-
-			http.request( attr.src, function(res){
+			http.get( attrs.src, function(res){
 
 				var body='';
 
@@ -91,19 +88,21 @@ module.exports = function ESI( body, encoding ){
 	var p = new Promise(function(resolve, reject){
 		
 		// Make API request
-		Promise.all(tag_promises).then(function(){
+		Promise.all(tag_promises).then(function(response){
 
 			// Once all these have returned we can replace the parts of the body with the ESI fragments
 			var r = [];
 
-			for(var i=0;i<parts.length;i++){
+			for(var i=0; i < parts.length; i++){
 				// One from parts
 				r.push(parts[i]);
 				// The other from
-				r.push(arguments[i]||'');
+				if(i in response){
+					r.push(response[i]||'');
+				}
 			}
 
-			resolve( p.join('') );
+			resolve( r.join('') );
 		});
 
 
@@ -118,10 +117,11 @@ module.exports = function ESI( body, encoding ){
 
 function getAttributes(str){
 
-	var reg_attr = /\b([^\s=]+)(=(('|")(.*?)(\4)|[^\s]+))?/i;
+	var reg_attrs = /\b([^\s=]+)(=(('|")(.*?)(\4)|[^\s]+))?/ig,
+		reg_attr = /\b([^\s=]+)(=(('|")(.*?)(\4)|[^\s]+))?/i;
 	var m,r={};
 
-	while((m = reg_attr.exec(str))){
+	while((m = reg_attrs.exec(str))){
 		r[m[1]] = m[5] || m[3];
 	}
 
