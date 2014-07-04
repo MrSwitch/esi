@@ -3,21 +3,21 @@
 This script is to help developing using ESI tags in a document.
 
 
-# Mock up your own CDN
+## Mock up your own CDN
 
 Say you wanted to pull in a resource from "http://snipets.com/abc.html". 
 
 The ESI tag might look like e.g...
 
 ```html
-blah blah, oh and here's something i embed in the page using an ESI server ...
+blah blah, oh and here i embed in the page a snipet using an ESI server ...
 <esi:include src="http://snipets.com/abc.html"></esi:include>
 ```
 
-But then in development you get..., well nothing. But using this tool you can mock it up.
+But then in development you get..., well nothing. However whilst using this tool you can mock it up.
 
 
-## Via Node app.
+### via Node app.
 
 ```bash
 npm install esi --save
@@ -38,7 +38,7 @@ var srv = http.createServer(app).listen( 8080 );
 
 ```
 
-# Via client side javascript
+### via client side javascript
 
 ```html
         ...
