@@ -5,7 +5,6 @@
 
 var ESI = require('./src/esi.js');
 
-var ESI = require('expect');
 
 //
 // Extends the NodeJS service with an ESI shim to make requests before spitting stuff backout
@@ -43,12 +42,14 @@ module.exports = function( req, res, next ){
 
 		if(output.length){
 
-			var esi = output[0];
+			var item = output[0];
+			var esi = item[0];
+			var encoding = item[1];
 
 			esi.then( function( r ){
 
 				// Write this out
-				original_write.call( res, r.body, r.encoding );
+				original_write.call( res, r, encoding );
 
 				// Remove item from the start of the array
 				output.shift();
@@ -83,11 +84,10 @@ module.exports = function( req, res, next ){
 
 		// Push the request into a queue
 
-		output.push( esi );
+		output.push( [ esi, encoding ] );
 
 
 		// Once the item is resolved then we can flush the queue
-
 		esi.then(flush_output);
 
 	};

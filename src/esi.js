@@ -8,12 +8,19 @@ var http = require('http');
 
 
 
-var reg_esi_tags = /<(esi\:include)\s([^>]+)><\/\1>/ig,
-	reg_esi_tag_split = /<esi\:include\s[^>]+><\/esi\:include>/ig,
-	reg_esi_tag = /<(esi\:include)\s([^>]+)><\/\1>/i;
+var reg_esi_tags = /<(esi\:include)\s([^>]+)>([\s\S]*?)<\/\1>/ig,
+	reg_esi_tag_split = /<esi\:include\s[^>]+>[\s\S]*?<\/esi\:include>/ig,
+	reg_esi_tag = /<(esi\:include)\s([^>]+)>([\s\S]*?)<\/\1>/i;
 
 
 module.exports = function ESI( body, encoding ){
+
+	// Format incoming
+
+	if( typeof (body) !== 'string' ){
+		body = (body || '').toString();
+	}
+
 
 	// Create a series of Promise object
 
@@ -78,49 +85,38 @@ module.exports = function ESI( body, encoding ){
 
 		}));
 
-
 	});
 
 
-	//
+
 	// Create the mother of all promises, to process all the child operations into a single resolve.
-	//
-	var p = new Promise(function(resolve, reject){
-		
-		// Make API request
-		Promise.all(tag_promises).then(function(response){
+	
+	return Promise.all(tag_promises).then(function(response){
 
-			// Once all these have returned we can replace the parts of the body with the ESI fragments
-			var r = [];
+		// Once all these have returned we can replace the parts of the body with the ESI fragments
+		var r = [];
 
-			for(var i=0; i < parts.length; i++){
-				// One from parts
-				r.push(parts[i]);
-				// The other from
-				if(i in response){
-					r.push(response[i]||'');
-				}
+		for(var i=0; i < parts.length; i++){
+			// One from parts
+			r.push(parts[i]);
+			// The other from
+			if(i in response){
+				r.push(response[i]||'');
 			}
+		}
 
-			resolve( r.join('') );
-		});
-
-
+		return r.join('');
 	});
-
-
-	return p;
 };
 
 
 // getAttributes
 
+var reg_attrs = /\b([^\s=]+)(=(('|")(.*?)(\4)|[^\s]+))?/ig;
+
 function getAttributes(str){
 
-	var reg_attrs = /\b([^\s=]+)(=(('|")(.*?)(\4)|[^\s]+))?/ig,
-		reg_attr = /\b([^\s=]+)(=(('|")(.*?)(\4)|[^\s]+))?/i;
 	var m,r={};
-
 	while((m = reg_attrs.exec(str))){
 		r[m[1]] = m[5] || m[3];
 	}
