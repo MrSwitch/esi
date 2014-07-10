@@ -79,6 +79,10 @@ function processESITags(str){
 	}
 
 
+	// Report
+	log("request", attrs.src);
+
+
 	// Replace the section with a new Promise object for this tag and add it to the Promise Array
 	return new Promise(function(resolve, reject){
 
@@ -101,6 +105,11 @@ function processESITags(str){
 
 			});
 
+		}).on('error', function(e){
+
+			log('error','Could not access resource');
+
+			resolve(str);
 
 		});
 
@@ -122,4 +131,18 @@ function getAttributes(str){
 	}
 
 	return r;
+}
+
+
+// log
+
+function log(label, value){
+
+	if( module.exports.debug ){
+
+		var color = label === 'error' ? 1 : 2;
+
+		console.log("\x1B[33m%s\x1B[39m: \x1b[9"+color+"m%s\x1B[39m \x1b[3"+color+"m%s\x1B[39m", "esi", label, value);
+
+	}
 }
