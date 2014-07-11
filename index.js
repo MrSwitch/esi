@@ -50,6 +50,9 @@ module.exports = function( req, res, next ){
 
 			esi.then( function( r ){
 
+				// remove the res header
+				res.removeHeader('content-length');
+
 				// Write this out
 				original_write.call( res, r, encoding );
 
