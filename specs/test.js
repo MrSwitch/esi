@@ -111,10 +111,7 @@ describe("ESI connect", function(){
 		request(test)
 			.get('/hello')
 			.expect(200, 'hello')
-			.end(function(err, res){
-				if (err) throw err;
-				done();
-			});
+			.end(done);
 	});
 
 
@@ -122,15 +119,12 @@ describe("ESI connect", function(){
 
 		var resolve = 'hello';
 		var url = 'http://localhost:'+test_port+"/"+resolve;
-		var snipet = '<esi:include src="'+url+'"></esi:include>';
+		var snipet = '<esi:include src="'+url+'"></esi:include>'+resolve;
 
 		request(test)
 			.get('/'+(snipet))
-			.expect(200, resolve)
-			.end(function(err, res){
-				if (err) throw err;
-				done();
-			});
+			.expect(200, resolve + resolve)
+			.end(done);
 	});
 
 });
