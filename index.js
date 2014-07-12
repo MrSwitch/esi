@@ -24,7 +24,7 @@ module.exports = function( req, res, next ){
 	// Output
 	// pending actions awaiting a response
 
-	var output = [], pending;
+	var output = [], pending, ended;
 
 	function flush_output(){
 
@@ -50,9 +50,6 @@ module.exports = function( req, res, next ){
 
 			esi.then( function( r ){
 
-				// remove the res header
-				res.removeHeader('content-length');
-
 				// Write this out
 				original_write.call( res, r, encoding );
 
@@ -68,8 +65,8 @@ module.exports = function( req, res, next ){
 			});
 		}
 
-		// The user has ended the response and the flush has been cleared away
 
+		// The user has ended the response and the flush has been cleared away
 		if( ended && output.length === 0 ){
 
 			original_end.call( res );
@@ -81,6 +78,11 @@ module.exports = function( req, res, next ){
 	// Overwrite the write function
 
 	res.write = function( chunk, encoding ){
+
+		// remove the res header
+
+		res.removeHeader('content-length');
+
 
 		// Does this have an ESI fragment
 
