@@ -1,7 +1,7 @@
 {
   "name": "esi",
   "version": "0.0.4",
-  "description": "",
+  "description": "Edge Side Includes processing for Client and Node environments",
   "main": "index.js",
   "dependencies": {
     "promise": "~5.0.0"
