@@ -79,43 +79,111 @@ function processESITags(str){
 	}
 
 
-	// Report
-	log("request", attrs.src);
-
-
 	// Replace the section with a new Promise object for this tag and add it to the Promise Array
-	return new Promise(function(resolve, reject){
 
-		http.get( attrs.src, function(res){
+	return new Promise(function( resolve, reject ){
 
-			var body='';
+		// Make request
+		makeRequest( attrs.src, resolve, reject );
 
-			res.on('data', function(buffer){
-				body += buffer;
-			});
+	})
 
-			res.on('end', function(){
+	// If this fails, check for an alt attribute
+	.then(
+		null,
+		function(){
 
-				// Check whether the response also contains ESI fragments
+			// The response returned a responseState greater than 400
 
-				var esi = ESI( body );
 
-				// resolve this Promise with the response from the server
-				esi.then(resolve);
+			// Is there an alternative path?
 
-			});
+			if( attrs.alt ){
 
-		}).on('error', function(e){
+				// Make the request again
 
-			log('error','Could not access resource');
+				return new Promise( function( resolve, reject ){
 
-			resolve(str);
+					log( 'fallback', attrs.alt );
+
+					makeRequest( attrs.alt, resolve, reject );
+
+				});
+			}
+			else{
+
+				log('error','Could not access '+attrs.src);
+
+				return str;
+			}
+		}
+	)
+
+	// If all else fails
+	.then(null,
+		function(){
+
+			// The response returned a responseState greater than 400
+			log('error','Could not access '+attrs.src);
+
+			// return the esi:tag as it was given, there is nowt to do
+			return str;
+		}
+	);
+}
+
+
+
+
+// Make an HTTP request for a resource
+
+function makeRequest( url, resolve, reject ){
+
+	// Report
+
+	log("request", url);
+
+
+	// Get the resource
+
+	http.get( url, function(res){
+
+		var body='';
+
+		// Reject the promise if the response Code is >= 400
+
+		if(res.statusCode >= 400){
+
+			log('error',res.statusCode);
+
+			reject();
+
+			return;
+		}
+
+
+		// If not read the data and pass through ESI
+
+		res.on('data', function(buffer){
+			body += buffer;
+		});
+
+		res.on('end', function(){
+
+			// Check whether the response also contains ESI fragments
+
+			var esi = ESI( body );
+
+			// resolve this Promise with the response from the server
+			esi.then(resolve);
 
 		});
 
+	}).on('error', function(e){
+		reject();
 	});
-
 }
+
 
 
 

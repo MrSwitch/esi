@@ -84,7 +84,8 @@ describe("ESI", function(){
 describe("ESI connect", function(){
 
 	var srv, test;
-	var test_port = 3334;
+	var test_port = 3334,
+		localhost = "http://localhost:"+test_port+"/";
 
 	before(function(){
 
@@ -94,6 +95,11 @@ describe("ESI connect", function(){
 		test = connect()
 			.use( ESIConnect )
 			.use( function( req, res ){
+				// Check if the request URL is returning a number?
+				var m;
+				if( ( m = req.url.match(/^\/(\d+)$/) ) ){
+					res.writeHead(parseInt(m[1],10),{});
+				}
 				res.write( decodeURIComponent(req.url).replace(/^\/|\/$/g,'') );
 				res.end();
 			});
@@ -118,13 +124,39 @@ describe("ESI connect", function(){
 	it("should follow the includes in ESI tags", function(done){
 
 		var resolve = 'hello';
-		var url = 'http://localhost:'+test_port+"/"+resolve;
-		var snipet = '<esi:include src="'+url+'"></esi:include>'+resolve;
+		var snipet = '<esi:include src="'+ localhost + resolve +'"></esi:include>'+resolve;
 
 		request(test)
 			.get('/'+(snipet))
 			.expect(200, resolve + resolve)
 			.end(done);
+	});
+
+	it("should return the ESI fragment if it can't honor the request", function(done){
+
+		var snipet = '<esi:include src="'+ localhost + 404 + '"></esi:include>';
+
+		request(test)
+			.get('/'+(snipet))
+			.expect(200, snipet)
+			.end(function(err, res){
+				if (err) throw err;
+				done();
+			});
+	});
+
+	it("should use the alt attributes if the first returns an error status", function(done){
+
+		var resolve = 'hello';
+		var snipet = '<esi:include src="'+ localhost + 404 + '" " alt="' + localhost + resolve +'"></esi:include>';
+
+		request(test)
+			.get('/'+(snipet))
+			.expect(200, resolve)
+			.end(function(err, res){
+				if (err) throw err;
+				done();
+			});
 	});
 
 });

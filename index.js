@@ -4,7 +4,6 @@
 //
 
 var ESI = require('./src/esi.js');
-
 //
 // Extends the NodeJS service with an ESI shim to make requests before spitting stuff backout
 // The function manipulates res.write and res.end function of a response object in NodeJS
@@ -81,7 +80,8 @@ module.exports = function( req, res, next ){
 
 		// remove the res header
 
-		res.removeHeader('content-length');
+		if(!res.headersSent)
+			res.removeHeader('content-length');
 
 
 		// Does this have an ESI fragment
