@@ -21,7 +21,25 @@ var request = require('supertest');
 
 
 
-describe("ESI", function(){
+describe("esi()", function(){
+
+	it("should return a promise object", function(){
+		var esi = ESI('text');
+		expect( esi ).to.have.property( 'then' );
+	});
+
+	it("should not affect regular content", function(done){
+		var str = 'text';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( str );
+			done();
+		});
+	});
+});
+
+
+describe("esi:include", function(){
 
 	var srv;
 
@@ -42,21 +60,6 @@ describe("ESI", function(){
 		srv.close();
 	});
 
-
-	it("should return a promise object", function(){
-		var esi = ESI('text');
-		expect( esi ).to.have.property( 'then' );
-	});
-
-	it("should not affect regular content", function(done){
-		var str = 'text';
-		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( str );
-			done();
-		});
-	});
-
 	it("should follow the paths in an ESI tag", function(done){
 		var str = '<esi:include src="http://localhost:3333/text"></esi:include>';
 		var esi = ESI( str );
@@ -71,6 +74,39 @@ describe("ESI", function(){
 		var esi = ESI( str );
 		esi.then(function( response ){
 			expect( response ).to.be.eql( '/text1, /text2,/text3' );
+			done();
+		});
+	});
+
+});
+
+
+
+
+
+describe("esi:remove", function(){
+
+	it("should cut esi:remove tag and nested content from body", function(done){
+		var str = 'should <esi:remove> not </esi:remove>appear';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'should appear' );
+			done();
+		});
+	});
+
+});
+
+
+
+
+describe("<!--esi -->", function(){
+
+	it("should clip the esi comments tags from body text", function(done){
+		var str = 'should<!--esi always -->appear';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'should always appear' );
 			done();
 		});
 	});

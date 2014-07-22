@@ -13,6 +13,15 @@
 
 function esi(document){
 
+	// Enable hidden esi comment code 
+	enableESICommentContent(document);
+
+
+	// esi:remove tags
+	disableESITagRemove(document);
+
+
+	// Replace 
 	var tags = document.getElementsByTagName('esi:include');
 
 	// Foreach Tag
@@ -41,11 +50,7 @@ esi(document);
 function esiTag(tag){
 
 	// Create a ghost of the fragment in the DOM
-	var ghost = document.createComment( tag.outerHTML );
-	after( tag, ghost );
-
-	// Remove the current element from the DOM
-	tag.parentNode.removeChild(tag);
+	var ghost = ghostifyNode( tag );
 
 	// Read instructions
 	var src = tag.getAttribute('src');
@@ -66,7 +71,7 @@ function esiTag(tag){
 		after( ghost, frag );
 
 		// Rerun esi
-		esi();
+		esi(document);
 	});
 }
 
@@ -135,6 +140,46 @@ function load(url, callback){
 }
 
 
+function ghostifyNode(node){
+	
+	var ghost = document.createComment( node.outerHTML );
+	after( node, ghost );
+
+	// Remove the current element from the DOM
+	node.parentNode.removeChild(node);
+
+	return ghost;
+}
+
+//
+// Enable ESI Comment code
+
+function enableESICommentContent(node){
+    if(!node)
+        return;
+    if(node.nodeType==8){
+        var m = node.data.match(/^esi\s([\S\s]*)/);
+        if( m ){
+        	node.data = "processed-esi-comment " + m[1];
+        	var frag = createFrag( m[1] );
+        	after( node, frag );
+
+        }
+    }
+    if(!node.childNodes)
+        return;
+    for(var i=0;i<node.childNodes.length;i++)
+        enableESICommentContent(node.childNodes[i]);
+}
+
+function disableESITagRemove(document){
+
+	var tags = document.getElementsByTagName('esi:remove');
+
+	while( tags.length ){
+		ghostifyNode( tags[0] );
+	}
+}
 
 // EOF esi
 })();

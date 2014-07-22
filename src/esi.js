@@ -9,7 +9,8 @@ var http = require('http');
 
 
 var reg_esi_tag_split = /(<esi\:include\s[^>]+>[\s\S]*?<\/esi\:include>)/ig;
-
+var reg_esi_comments = /<\!--esi\b([\s\S]*?)-->/gi;
+var reg_esi_remove_tag = /<esi\:remove\b[^>]*>[\s\S]*?<\/esi\:remove>/;
 
 module.exports = ESI;
 
@@ -26,6 +27,15 @@ function ESI( body, encoding ){
 	if( typeof (body) !== 'string' ){
 		body = (body || '').toString();
 	}
+
+
+	// Trim any <!--esi --> comment tags off
+	body = body.replace(reg_esi_comments, '$1');
+
+
+	// Remove any esi:remove nodes and their children
+	body = body.replace(reg_esi_remove_tag, '');
+
 
 	// Split the current string into parts, some including the ESI fragment and then the bits in between
 	// Loop through and process each of the ESI fragments, mapping them back to a parts array containing strings and the Promise objects
