@@ -8,9 +8,8 @@ var http = require('http');
 
 
 
-var reg_esi_tag_split = /(<esi\:include\s[^>]+>[\s\S]*?<\/esi\:include>)/ig;
+var reg_esi_tag = /<(esi\:[a-z]+)(\s[^>]+)?>([\s\S]*?)<\/\1>/i;
 var reg_esi_comments = /<\!--esi\b([\s\S]*?)-->/gi;
-var reg_esi_remove_tag = /<esi\:remove\b[^>]*>[\s\S]*?<\/esi\:remove>/;
 
 module.exports = ESI;
 
@@ -20,7 +19,7 @@ module.exports = ESI;
 // Given an body of text, break it down into strings and Promise objects
 // @return Promise
 
-function ESI( body, encoding ){
+function ESI( body, encoding, VARS ){
 
 	// Format incoming
 
@@ -30,17 +29,17 @@ function ESI( body, encoding ){
 
 
 	// Trim any <!--esi --> comment tags off
-	body = body.replace(reg_esi_comments, '$1');
+	body = body.replace(reg_esi_comments, '<esi:vars>$1</esi:vars>');
 
 
-	// Remove any esi:remove nodes and their children
-	body = body.replace(reg_esi_remove_tag, '');
+	// Inherit Dictionary of VARS
+	VARS = Object.create(VARS||{});
 
 
 	// Split the current string into parts, some including the ESI fragment and then the bits in between
 	// Loop through and process each of the ESI fragments, mapping them back to a parts array containing strings and the Promise objects
 
-	var parts = body.split( reg_esi_tag_split ).map( processESITags );
+	var parts = splitText( body ).map( processESITags.bind(VARS) );
 
 
 
@@ -56,14 +55,11 @@ function ESI( body, encoding ){
 
 
 
-
-var reg_esi_tag = /<(esi\:include)\s([^>]+)>([\s\S]*?)<\/\1>/i;
-
-
 // Process ESI tags
 // Given a section of the body string, if it is a esi tag process it and return a Promise object, otherwise return a string.
 
 function processESITags(str){
+
 
 
 	// Get Tag Attributes in an object
@@ -73,12 +69,54 @@ function processESITags(str){
 
 	// Is this a tag?
 	if( !m ){
-		// nope, spit it back...
-		return str;
+		// Are there any items in here which are in the local dictionary
+		// Do a quick dictionary replace and spit it back
+
+		return DictionaryReplace( str, this );
 	}
 
 
+	// Reference the different parts of the node
+
+	var tag = m[1];
 	var attrs = getAttributes(m[2]);
+	var body = m[3];
+
+
+
+	switch(tag){
+
+		// Replaces the content
+		case 'esi:include':
+			return processESIInclude( attrs, body, this, str);
+
+		// Apply variables to the block
+		case 'esi:vars':
+			return processESIVars( attrs, body, this );
+
+
+		case 'esi:assign':
+			// Add to the dictionary
+			this[attrs.name] = attrs.value;
+			return '';
+
+		case 'esi:comment':
+		case 'esi:remove':
+			// All else, return empty string...
+			return '';
+	}
+
+	// All else, return empty string...
+	return str;
+}
+
+
+
+//
+// Process ESI include
+//
+
+function processESIInclude(attrs, body, VARS, str){
 
 
 	if( !attrs.src ){
@@ -88,13 +126,12 @@ function processESITags(str){
 		return str;
 	}
 
-
 	// Replace the section with a new Promise object for this tag and add it to the Promise Array
 
 	return new Promise(function( resolve, reject ){
 
 		// Make request
-		makeRequest( attrs.src, resolve, reject );
+		makeRequest( DictionaryReplace( attrs.src, VARS ), resolve, reject );
 
 	})
 
@@ -116,7 +153,7 @@ function processESITags(str){
 
 					log( 'fallback', attrs.alt );
 
-					makeRequest( attrs.alt, resolve, reject );
+					makeRequest( DictionaryReplace( attrs.alt, VARS ), resolve, reject );
 
 				});
 			}
@@ -140,6 +177,20 @@ function processESITags(str){
 			return str;
 		}
 	);
+}
+
+
+
+
+// Process ESI Vars
+
+function processESIVars(attrs, body, VARS){
+
+	if( !body && attrs.name ){
+		return DictionaryReplace( attrs.name, VARS );
+	}
+
+	return ESI(body, null, VARS);
 }
 
 
@@ -196,19 +247,52 @@ function makeRequest( url, resolve, reject ){
 
 
 
+var reg_esi_tag_global = new RegExp(reg_esi_tag.source, 'gi');
+
+function splitText(str){
+
+	var i=0,
+		m,
+		r=[];
+
+	while( ( m = reg_esi_tag_global.exec(str) ) ){
+		r.push(str.slice(i,m.index));
+		i = m.index+m[0].length;
+		r.push(m[0]);
+	}
+	r.push(str.slice(i,str.length));
+
+	return r;
+}
+
+
+
+
 
 // getAttributes
 
-var reg_attrs = /\b([^\s=]+)(=(('|")(.*?)(\4)|[^\s]+))?/ig;
+var reg_attrs = /\b([^\s=]+)(=(('|")(.*?[^\\]|)\4|[^\s]+))?/ig;
 
-function getAttributes(str){
+function getAttributes(str, undefined){
 
 	var m,r={};
 	while((m = reg_attrs.exec(str))){
-		r[m[1]] = m[5] || m[3];
+		r[m[1]] = ( m[5] !== undefined ? m[5] : m[3] );
 	}
 
 	return r;
+}
+
+
+//
+// Dictionary replace
+//
+function DictionaryReplace(str, hash){
+	return str.replace(/\$\((.*?)\)/, function(m, key){
+		if(key in hash){
+			return hash[key];
+		}
+	});
 }
 
 

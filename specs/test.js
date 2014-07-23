@@ -39,6 +39,38 @@ describe("esi()", function(){
 });
 
 
+
+
+describe("esi:assign, esi:vars and $(key)", function(){
+
+	it("should esi:assign a value to be used in ESI fragments", function(done){
+
+		var str = "<esi:assign name='test' value='quote\\'s'></esi:assign>";
+		str += "<esi:vars>$(test)</esi:vars>";
+
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'quote\\\'s' );
+			done();
+		});
+	});
+
+	it("should return the value of items defined in an esi:vars `name` attribute", function(done){
+
+		var str = "<esi:assign name='test' value='output'></esi:assign>";
+		str += "<esi:vars name=$(test)></esi:vars>";
+
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'output' );
+			done();
+		});
+	});
+});
+
+
+
+
 describe("esi:include", function(){
 
 	var srv;
@@ -78,6 +110,15 @@ describe("esi:include", function(){
 		});
 	});
 
+	it("should find and replace ESI variables in the `src` and `alt` attributes", function(done){
+		var str = '<esi:assign name="server" value="http://localhost:3333"></esi:assign><esi:include src="$(server)/text"></esi:include>';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( '/text' );
+			done();
+		});
+	});
+
 });
 
 
@@ -100,9 +141,9 @@ describe("esi:remove", function(){
 
 
 
-describe("<!--esi -->", function(){
+describe("<!--esi --> comment tag", function(){
 
-	it("should clip the esi comments tags from body text", function(done){
+	it("should clip the esi comments tags from around the text inside", function(done){
 		var str = 'should<!--esi always -->appear';
 		var esi = ESI( str );
 		esi.then(function( response ){
@@ -111,7 +152,18 @@ describe("<!--esi -->", function(){
 		});
 	});
 
+
+	it("should process the ESI content within the esi comment tag, e.g esi:* and $(key)", function(done){
+		var str = 'should<!--esi <esi:assign name=key value=always></esi:assign>$(key) -->appear';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'should always appear' );
+			done();
+		});
+	});
+
 });
+
 
 
 
