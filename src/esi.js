@@ -8,7 +8,7 @@ var http = require('http');
 
 
 
-var reg_esi_tag = /<(esi\:[a-z]+)(\s[^>]+)?>([\s\S]*?)<\/\1>/i;
+var reg_esi_tag = /<(esi\:[a-z]+)\b([^>]+[^\/>])?(?:\/|>([\s\S]*?)<\/\1)>/i;
 var reg_esi_comments = /<\!--esi\b([\s\S]*?)-->/gi;
 
 module.exports = ESI;

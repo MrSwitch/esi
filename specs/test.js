@@ -37,6 +37,15 @@ describe("esi()", function(){
 			done();
 		});
 	});
+
+	it("should process open and closed tags, i.e. <esi:tag/> and <esi:tag></esi:tag>", function(done){
+		var str = '<esi:comment/><esi:comment a/><esi:comment a />ok<esi:comment>removed</esi:other></esi:comment>';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'ok' );
+			done();
+		});
+	});
 });
 
 
@@ -76,7 +85,7 @@ describe("esi:assign, esi:vars and $(key)", function(){
 
 	it("should esi:assign a value to be used in ESI fragments", function(done){
 
-		var str = "<esi:assign name='test' value='quote\\'s'></esi:assign>";
+		var str = "<esi:assign name='test' value='quote\\'s'/>";
 		str += "<esi:vars>$(test)</esi:vars>";
 
 		var esi = ESI( str );
@@ -88,8 +97,8 @@ describe("esi:assign, esi:vars and $(key)", function(){
 
 	it("should return the value of items defined in an esi:vars `name` attribute", function(done){
 
-		var str = "<esi:assign name='test' value='output'></esi:assign>";
-		str += "<esi:vars name=$(test)></esi:vars>";
+		var str = "<esi:assign name='test' value='output'/>";
+		str += "<esi:vars name=$(test)/>";
 
 		var esi = ESI( str );
 		esi.then(function( response ){
@@ -106,7 +115,7 @@ describe("esi:include", function(){
 
 
 	it("should replace the content defined by the src attribute of the esi:include tag", function(done){
-		var str = '<esi:include src="'+ localhost +'text"></esi:include>';
+		var str = '<esi:include src="'+ localhost +'text"/>';
 		var esi = ESI( str );
 		esi.then(function( response ){
 			expect( response ).to.be.eql( 'text' );
@@ -124,7 +133,7 @@ describe("esi:include", function(){
 	});
 
 	it("should process ESI VARS in the `src` attribute", function(done){
-		var str = '<esi:assign name="server" value="'+ localhost +'"></esi:assign><esi:include src="$(server)ok"></esi:include>';
+		var str = '<esi:assign name="server" value="'+ localhost +'"/><esi:include src="$(server)ok"/>';
 		var esi = ESI( str );
 		esi.then(function( response ){
 			expect( response ).to.be.eql( 'ok' );
@@ -133,7 +142,7 @@ describe("esi:include", function(){
 	});
 
 	it("should use the `alt` attributes if the `src` returns an error status", function(done){
-		var str = '<esi:include src="'+ localhost + 404 + '" alt="' + localhost + 'ok"></esi:include>';
+		var str = '<esi:include src="'+ localhost + 404 + '" alt="' + localhost + 'ok"/>';
 		var esi = ESI( str );
 		esi.then(function( response ){
 			expect( response ).to.be.eql( 'ok' );
@@ -142,7 +151,7 @@ describe("esi:include", function(){
 	});
 
 	it("should process ESI VARS in the `alt` attribute", function(done){
-		var str = '<esi:assign name="server" value="'+ localhost +'"></esi:assign><esi:include src="$(server)404" alt="$(server)ok"></esi:include>';
+		var str = '<esi:assign name="server" value="'+ localhost +'"/><esi:include src="$(server)404" alt="$(server)ok"/>';
 		var esi = ESI( str );
 		esi.then(function( response ){
 			expect( response ).to.be.eql( 'ok' );
@@ -159,10 +168,10 @@ describe("esi:include", function(){
 describe("esi:remove", function(){
 
 	it("should cut esi:remove tag and nested content from body", function(done){
-		var str = 'should <esi:remove> not </esi:remove>appear';
+		var str = '<esi:remove> not </esi:remove>ok';
 		var esi = ESI( str );
 		esi.then(function( response ){
-			expect( response ).to.be.eql( 'should appear' );
+			expect( response ).to.be.eql( 'ok' );
 			done();
 		});
 	});
@@ -185,7 +194,7 @@ describe("<!--esi --> comment tag", function(){
 
 
 	it("should process the ESI content within the esi comment tag, e.g esi:* and $(key)", function(done){
-		var str = 'should<!--esi <esi:assign name=key value=always></esi:assign>$(key) -->appear';
+		var str = 'should<!--esi <esi:assign name=key value=always/>$(key) -->appear';
 		var esi = ESI( str );
 		esi.then(function( response ){
 			expect( response ).to.be.eql( 'should always appear' );
@@ -215,7 +224,7 @@ describe("ESI connect", function(){
 	it("should process esi:include tags", function(done){
 
 		var resolve = 'hello';
-		var snipet = '<esi:include src="'+ localhost + resolve +'"></esi:include>'+resolve;
+		var snipet = '<esi:include src="'+ localhost + resolve +'"/>'+resolve;
 
 		request(test)
 			.get('/'+(snipet))
@@ -226,7 +235,7 @@ describe("ESI connect", function(){
 
 	it("should pass through HTTP VARS", function(done){
 
-		var snipet = '<esi:include src="'+ localhost + '$(HTTP_HOST)"></esi:include>';
+		var snipet = '<esi:include src="'+ localhost + '$(HTTP_HOST)"/>';
 
 		request(test)
 			.get('/'+(snipet))
