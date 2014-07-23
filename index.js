@@ -4,6 +4,10 @@
 //
 
 var ESI = require('./src/esi.js');
+
+var URL =  require('url');
+
+
 //
 // Extends the NodeJS service with an ESI shim to make requests before spitting stuff backout
 // The function manipulates res.write and res.end function of a response object in NodeJS
@@ -12,6 +16,10 @@ module.exports = function( req, res, next ){
 
 	// Set debug level in module	
 	ESI.debug = module.exports.debug;
+
+
+	// Define the VARS which will be passed
+	var HTTP_VARS = get_http_vars( req );
 
 
 	// Store the original, write and end functions
@@ -86,7 +94,7 @@ module.exports = function( req, res, next ){
 
 		// Does this have an ESI fragment
 
-		var esi = ESI( chunk, encoding );
+		var esi = ESI( chunk, encoding, HTTP_VARS );
 
 
 		// Push the request into a queue
@@ -119,3 +127,26 @@ module.exports = function( req, res, next ){
 	}
 
 };
+
+
+
+//
+// Return
+// Pass in variables into ESI which identifies the request
+//
+function get_http_vars(req){
+	var http_vars = {};
+	for(var x in req.headers ){
+		http_vars[ "HTTP_" + x.replace(/\-/g,'_').toUpperCase() ] = req.headers[x];
+	}
+
+	// Extract the HTTP request
+	var url = URL.parse( req.url );
+	http_vars.REQUEST_PATH = url.pathname;
+	http_vars.QUERY_STRING = url.query;
+
+
+	http_vars.REQUEST_METHOD = req.method;
+
+	return http_vars;
+}

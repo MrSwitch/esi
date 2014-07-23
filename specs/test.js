@@ -19,6 +19,7 @@ var http = require('http');
 
 var request = require('supertest');
 
+var SUPER_TEST_HOST = /127.0.0.1:\d/;
 
 
 describe("esi()", function(){
@@ -219,6 +220,17 @@ describe("ESI connect", function(){
 		request(test)
 			.get('/'+(snipet))
 			.expect(200, resolve + resolve)
+			.end(done);
+	});
+
+
+	it("should pass through HTTP VARS", function(done){
+
+		var snipet = '<esi:include src="'+ localhost + '$(HTTP_HOST)"></esi:include>';
+
+		request(test)
+			.get('/'+(snipet))
+			.expect(200, SUPER_TEST_HOST )
 			.end(done);
 	});
 
