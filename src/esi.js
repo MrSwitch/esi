@@ -94,6 +94,36 @@ function processESITags(str){
 		case 'esi:vars':
 			return processESIVars( attrs, body, this );
 
+		// Call the esi:choose as a block
+		case 'esi:choose':
+			return ESI( body, null, this );
+
+		// Check
+		case 'esi:when':
+			// Has the matches already returned a result?
+			if( !this.hasOwnProperty('MATCHES') ){
+				// Run the test
+
+				var result = processESICondition( attrs.test, this );
+				if( result ){
+					// Store the result into a variable called matches
+					this.MATCHES = result;
+
+					// Execute this block of code
+					return ESI( body, null, this );
+				}
+			}
+			// Otherwise lets not include this block in the response
+			return '';
+
+		case 'esi:otherwise':
+
+			// Has the previous esi:when condition already matched?
+			if( this.hasOwnProperty('MATCHES') ){
+				return '';
+			}
+			// Otherwise, process the esi:otherwise block
+			return ESI( body, null, this );
 
 		case 'esi:assign':
 			// Add to the dictionary
@@ -195,6 +225,92 @@ function processESIVars(attrs, body, VARS){
 
 
 
+// Process a conditiional test
+
+function processESICondition( test, VARS ){
+
+
+
+	// There can be mmultiple tests
+	var tests = test.split(/\s+(\|\||\&\&)\s+/g);
+	var bool, matches;
+
+	for ( var i=0; i< tests.length; i++ ){
+
+		// Trim white spaces
+		test = tests[i].replace(/(^\s+|\s+$)/,'');
+
+
+		// Logical operator
+		if( test === '&&' && bool === false ){
+			break;
+		}
+		else if ( test === '||' && bool === true ){
+			break;
+		}
+
+
+		// Does it have a negatory operator
+		var negatory = test[0] === '!';
+		test.replace(/^\!/,'');
+
+		// Match
+		var m = test.match(/^(.*?)\s+(=|==|<=|>=|matches|matches_i|has|has_i)\s+('''|)(.*?)\3$/);
+
+		// Boolean condition
+		if( !m ){
+
+			bool = !!DictionaryReplace( test, VARS );
+		}
+		else{
+
+			// Comparison Operators
+			var a = DictionaryReplace( m[1], VARS );
+			var operator = m[2];
+			var b = DictionaryReplace( m[4], VARS );
+
+			// Compare the two
+			switch(operator){
+				case '=':
+				case '==':
+				case '===':
+					bool = a === b;
+					break;
+				case '!=':
+				case '!==':
+					bool = a !== b;
+					break;
+				case '>=':
+					bool = a >= b;
+					break;
+				case '<=':
+					bool = a <= b;
+					break;
+				case 'has':
+					bool = a.indexOf(b) > -1;
+					break;
+				case 'has_i':
+					bool = a.toLowerCase().indexOf(b.toLowerCase()) > -1;
+					break;
+				case 'matches':
+				case 'matches_i':
+
+					var reg = new RegExp( b, operator === 'matches_i' ? 'i' : '' );
+					matches = a.match(reg);
+					bool = !!matches;
+					break;
+			}
+		}
+
+		// Is there a negatory operator
+		bool = negatory ^ bool;
+	}
+
+	return bool ? matches || true : false;
+}
+
+
+
 
 // Make an HTTP request for a resource
 
@@ -292,6 +408,7 @@ function DictionaryReplace(str, hash){
 		if(key in hash){
 			return hash[key];
 		}
+		return '';
 	});
 }
 

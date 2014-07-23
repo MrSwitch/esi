@@ -206,6 +206,60 @@ describe("<!--esi --> comment tag", function(){
 
 
 
+// Conditional Blocks
+
+
+describe("esi:choose", function(){
+
+	describe("should render esi:when block when its attribute `test` is truthy", function(){
+
+		[
+			'$(HTTP_HOST) == localhost',
+			'$(HTTP_HOST)',
+			"$(HTTP_HOST) matches '''^local.*''' ",
+			"$(HTTP_HOST) has local",
+			"$(HTTP_HOST) != remote"
+		].forEach(function(test){
+
+			it("true: " + test, function(done){
+
+				var str = '<esi:choose><esi:when test="'+ test +'">ok</esi:when><esi:otherwise>fail</esi:otherwise></esi:choose>';
+				var esi = ESI( str, null, {
+					HTTP_HOST : 'localhost'
+				} );
+				esi.then(function( response ){
+					expect( response ).to.be.eql( 'ok' );
+					done();
+				});
+			});
+		});
+
+	});
+
+	describe("should render esi:otherwise block when previous esi:when tests are falsy", function(){
+
+		[
+			'$(unknown)',
+			'!$(HTTP_HOST)',
+			'$(HTTP_HOST) == remote'
+		].forEach(function(test){
+
+			it(" " + test, function(done){
+
+				var str = '<esi:choose><esi:when test="'+ test +'">fail</esi:when><esi:otherwise>ok</esi:otherwise></esi:choose>';
+				var esi = ESI( str, null, {
+					HTTP_HOST : 'localhost'
+				} );
+				esi.then(function( response ){
+					expect( response ).to.be.eql( 'ok' );
+					done();
+				});
+			});
+		});
+	});
+});
+
+
 
 
 
