@@ -40,6 +40,36 @@ describe("esi()", function(){
 
 
 
+var srv, test;
+var test_port = 3334,
+	localhost = "http://localhost:"+test_port+"/";
+
+before(function(){
+
+	// The test server merely writes out the the GET path in the body of the response
+	// This makes testing easier, since each test can effectively mock its own environment
+
+	test = connect()
+		.use( ESIConnect )
+		.use( function( req, res ){
+			// Check if the request URL is returning a number?
+			var m;
+			if( ( m = req.url.match(/^\/(\d+)$/) ) ){
+				res.writeHead(parseInt(m[1],10),{});
+			}
+			res.write( decodeURIComponent(req.url).replace(/^\/|\/$/g,'') );
+			res.end();
+		});
+
+	srv = http.createServer(test).listen(test_port);
+});
+
+after(function(){
+	srv.close();
+});
+
+
+
 
 describe("esi:assign, esi:vars and $(key)", function(){
 
@@ -73,48 +103,48 @@ describe("esi:assign, esi:vars and $(key)", function(){
 
 describe("esi:include", function(){
 
-	var srv;
 
-	before(function(){
-		var test_port = 3333;
-
-		var test = connect()
-			.use( function( req, res ){
-		//		console.log( req.url );
-				res.write( req.url );
-				res.end();
-			});
-
-		srv = http.createServer(test).listen(test_port);
-	});
-
-	after(function(){
-		srv.close();
-	});
-
-	it("should follow the paths in an ESI tag", function(done){
-		var str = '<esi:include src="http://localhost:3333/text"></esi:include>';
+	it("should replace the content defined by the src attribute of the esi:include tag", function(done){
+		var str = '<esi:include src="'+ localhost +'text"></esi:include>';
 		var esi = ESI( str );
 		esi.then(function( response ){
-			expect( response ).to.be.eql( '/text' );
+			expect( response ).to.be.eql( 'text' );
 			done();
 		});
 	});
 
-	it("should follow the paths in multiple ESI tags", function(done){
-		var str = '<esi:include ignore src="http://localhost:3333/text1" ignorethis>\n ignore this\n </esi:include>, <esi:include ignoreme src="http://localhost:3333/text2"></esi:include>,<esi:include src="http://localhost:3333/text3"></esi:include>';
+	it("should work indendently and handle multiple queries simultaneiously", function(done){
+		var str = '<esi:include ignore src="'+ localhost +'text1" ignorethis>\n ignore this\n </esi:include>, <esi:include ignoreme src="'+ localhost +'text2"></esi:include>,<esi:include src="'+ localhost +'text3"></esi:include>';
 		var esi = ESI( str );
 		esi.then(function( response ){
-			expect( response ).to.be.eql( '/text1, /text2,/text3' );
+			expect( response ).to.be.eql( 'text1, text2,text3' );
 			done();
 		});
 	});
 
-	it("should find and replace ESI variables in the `src` and `alt` attributes", function(done){
-		var str = '<esi:assign name="server" value="http://localhost:3333"></esi:assign><esi:include src="$(server)/text"></esi:include>';
+	it("should process ESI VARS in the `src` attribute", function(done){
+		var str = '<esi:assign name="server" value="'+ localhost +'"></esi:assign><esi:include src="$(server)ok"></esi:include>';
 		var esi = ESI( str );
 		esi.then(function( response ){
-			expect( response ).to.be.eql( '/text' );
+			expect( response ).to.be.eql( 'ok' );
+			done();
+		});
+	});
+
+	it("should use the `alt` attributes if the `src` returns an error status", function(done){
+		var str = '<esi:include src="'+ localhost + 404 + '" alt="' + localhost + 'ok"></esi:include>';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'ok' );
+			done();
+		});
+	});
+
+	it("should process ESI VARS in the `alt` attribute", function(done){
+		var str = '<esi:assign name="server" value="'+ localhost +'"></esi:assign><esi:include src="$(server)404" alt="$(server)ok"></esi:include>';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'ok' );
 			done();
 		});
 	});
@@ -171,34 +201,6 @@ describe("<!--esi --> comment tag", function(){
 
 describe("ESI connect", function(){
 
-	var srv, test;
-	var test_port = 3334,
-		localhost = "http://localhost:"+test_port+"/";
-
-	before(function(){
-
-		// The test server merely writes out the the GET path in the body of the response
-		// This makes testing easier, since each test can effectively mock its own environment
-
-		test = connect()
-			.use( ESIConnect )
-			.use( function( req, res ){
-				// Check if the request URL is returning a number?
-				var m;
-				if( ( m = req.url.match(/^\/(\d+)$/) ) ){
-					res.writeHead(parseInt(m[1],10),{});
-				}
-				res.write( decodeURIComponent(req.url).replace(/^\/|\/$/g,'') );
-				res.end();
-			});
-
-		srv = http.createServer(test).listen(test_port);
-	});
-
-	after(function(){
-		srv.close();
-	});
-
 
 	it("should pass through non-esi text", function(done){
 
@@ -209,7 +211,7 @@ describe("ESI connect", function(){
 	});
 
 
-	it("should follow the includes in ESI tags", function(done){
+	it("should process esi:include tags", function(done){
 
 		var resolve = 'hello';
 		var snipet = '<esi:include src="'+ localhost + resolve +'"></esi:include>'+resolve;
@@ -232,19 +234,4 @@ describe("ESI connect", function(){
 				done();
 			});
 	});
-
-	it("should use the alt attributes if the first returns an error status", function(done){
-
-		var resolve = 'hello';
-		var snipet = '<esi:include src="'+ localhost + 404 + '" " alt="' + localhost + resolve +'"></esi:include>';
-
-		request(test)
-			.get('/'+(snipet))
-			.expect(200, resolve)
-			.end(function(err, res){
-				if (err) throw err;
-				done();
-			});
-	});
-
 });
