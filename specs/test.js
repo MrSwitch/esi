@@ -22,34 +22,6 @@ var request = require('supertest');
 var SUPER_TEST_HOST = /127.0.0.1:\d/;
 
 
-describe("esi()", function(){
-
-	it("should return a promise object", function(){
-		var esi = ESI('text');
-		expect( esi ).to.have.property( 'then' );
-	});
-
-	it("should not affect regular content", function(done){
-		var str = 'text';
-		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( str );
-			done();
-		});
-	});
-
-	it("should process open and closed tags, i.e. <esi:tag/> and <esi:tag></esi:tag>", function(done){
-		var str = '<esi:comment/><esi:comment a/><esi:comment a />ok<esi:comment>removed</esi:other></esi:comment>';
-		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
-	});
-});
-
-
-
 var srv, test;
 var test_port = 3334,
 	localhost = "http://localhost:"+test_port+"/";
@@ -77,6 +49,35 @@ before(function(){
 after(function(){
 	srv.close();
 });
+
+
+
+
+describe("ESI", function(){
+
+	it("should return a promise object", function(){
+		var esi = ESI('text');
+		expect( esi ).to.have.property( 'then' );
+	});
+
+	it("should not affect regular content", function(done){
+		var str = 'text';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( str );
+			done();
+		});
+	});
+
+	it("should process open and closed tags, i.e. <esi:tag/> and <esi:tag></esi:tag>", function(done){
+		var str = '<esi:comment/><esi:comment a/><esi:comment a />ok<esi:comment>removed</esi:other></esi:comment>';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'ok' );
+			done();
+		});
+	});
+
 
 
 
@@ -114,7 +115,7 @@ describe("esi:assign, esi:vars and $(key)", function(){
 describe("esi:include", function(){
 
 
-	it("should replace the content defined by the src attribute of the esi:include tag", function(done){
+	it("should be replaced with the resource defined in the `src` attribute", function(done){
 		var str = '<esi:include src="'+ localhost +'text"/>';
 		var esi = ESI( str );
 		esi.then(function( response ){
@@ -159,6 +160,16 @@ describe("esi:include", function(){
 		});
 	});
 
+
+	it("should return the ESI fragment if it can't honor the request", function(done){
+
+		var str = '<esi:include src="'+ localhost + 404 + '"></esi:include>';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( str );
+			done();
+		});
+	});
 });
 
 
@@ -167,7 +178,7 @@ describe("esi:include", function(){
 
 describe("esi:remove", function(){
 
-	it("should cut esi:remove tag and nested content from body", function(done){
+	it("should remove the esi:remove block from the text", function(done){
 		var str = '<esi:remove> not </esi:remove>ok';
 		var esi = ESI( str );
 		esi.then(function( response ){
@@ -244,7 +255,7 @@ describe("esi:choose", function(){
 			'$(HTTP_HOST) == remote'
 		].forEach(function(test){
 
-			it(" " + test, function(done){
+			it("false: " + test, function(done){
 
 				var str = '<esi:choose><esi:when test="'+ test +'">fail</esi:when><esi:otherwise>ok</esi:otherwise></esi:choose>';
 				var esi = ESI( str, null, {
@@ -258,7 +269,7 @@ describe("esi:choose", function(){
 		});
 	});
 
-	describe("(esi:when)", function(){
+	describe("esi:when", function(){
 
 		it("should assign the matches to $(MATCHES{1})", function(done){
 
@@ -294,11 +305,13 @@ describe("esi:choose", function(){
 	});
 });
 
+});
 
 
 
 
-describe("ESI connect", function(){
+
+describe("ESI via webserver", function(){
 
 
 	it("should pass through non-esi text", function(done){
@@ -310,7 +323,7 @@ describe("ESI connect", function(){
 	});
 
 
-	it("should process esi:include tags", function(done){
+	it("should process ESI markup", function(done){
 
 		var resolve = 'hello';
 		var snipet = '<esi:include src="'+ localhost + resolve +'"/>'+resolve;
@@ -322,26 +335,30 @@ describe("ESI connect", function(){
 	});
 
 
-	it("should pass through HTTP VARS", function(done){
+	describe("should assign HTTP VARS", function(){
 
-		var snipet = '<esi:include src="'+ localhost + '$(HTTP_HOST)"/>';
+		[
+			'HTTP_HOST',
+			'HTTP_COOKIE',
+			'HTTP_USER_AGENT',
+			'HTTP_ACCEPT_ENCODING',
 
-		request(test)
-			.get('/'+(snipet))
-			.expect(200, SUPER_TEST_HOST )
-			.end(done);
-	});
+			'REQUEST_METHOD',
+			'REQUEST_PATH',
+			'QUERY_STRING',
+		].forEach(function(vars){
 
-	it("should return the ESI fragment if it can't honor the request", function(done){
+			it(vars, function(done){
+				var snipet = '$('+vars+')';
 
-		var snipet = '<esi:include src="'+ localhost + 404 + '"></esi:include>';
-
-		request(test)
-			.get('/'+(snipet))
-			.expect(200, snipet)
-			.end(function(err, res){
-				if (err) throw err;
-				done();
+				request(test)
+					.get('/'+(snipet)+'?test=ok')
+					.set('cookie', 'biscuit=word;')
+					.expect(200, /.+/ )
+					.end(done);
 			});
+
+		});
 	});
+
 });

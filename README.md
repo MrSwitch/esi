@@ -43,3 +43,12 @@ var srv = http.createServer(app).listen( 8080 );
 	</body>
 </html>
 ```
+
+
+# Specs
+
+Get the current specs by running from the installed directory
+
+```
+mocha specs -R spec
+```
