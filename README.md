@@ -1,5 +1,7 @@
 # ESI (Edge Side Include)
 
+[![Build Status](https://travis-ci.org/MrSwitch/esi.svg?branch=master)](https://travis-ci.org/MrSwitch/esi)
+
 Edge Side Includes processing for Client and Node environments
 
 Say you wanted to pull in a resource from "http://snipets.com/abc.html". 
@@ -47,7 +49,7 @@ var srv = http.createServer(app).listen( 8080 );
 
 # Specs
 
-Get the current specs by running from the installed directory
+View the [This ESI specs online](https://travis-ci.org/MrSwitch/esi) or by running from the installed directory
 
 ```
 mocha specs -R spec
