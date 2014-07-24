@@ -107,7 +107,13 @@ function processESITags(str){
 				var result = processESICondition( attrs.test, this );
 				if( result ){
 					// Store the result into a variable called matches
+					// This is used to infer that a match was successful
 					this.MATCHES = result;
+
+					// Has a label been assigned to the MATCHES
+					if( attrs.matchname ){
+						this[ attrs.matchname ] = result;
+					}
 
 					// Execute this block of code
 					return ESI( body, null, this );
@@ -399,14 +405,24 @@ function getAttributes(str, undefined){
 //
 // Dictionary replace
 //
+var reg_esi_variable = /\$\((.*?)(?:\{([\d\w]+)\})?\)/g;
+
 function DictionaryReplace(str, hash){
-	return str.replace(/\$\((.*?)\)/g, function(m, key){
+	return str.replace( reg_esi_variable, function (m, key, subkey){
 		if(key in hash){
-			return hash[key];
+			var val = hash[key];
+			if( subkey ){
+				val = val[subkey];
+			}
+			return val;
 		}
 		return '';
 	});
 }
+
+
+
+
 
 
 // log

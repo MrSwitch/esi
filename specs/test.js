@@ -257,6 +257,41 @@ describe("esi:choose", function(){
 			});
 		});
 	});
+
+	describe("(esi:when)", function(){
+
+		it("should assign the matches to $(MATCHES{1})", function(done){
+
+			var test = "$(HTTP_HOST) matches '''^local(.*)'''";
+			var str = '<esi:choose><esi:when test="'+ test +'">$(MATCHES{1})</esi:when></esi:choose>';
+
+			var esi = ESI( str, null, {
+				HTTP_HOST : 'localok'
+			});
+
+			esi.then(function( response ){
+				expect( response ).to.be.eql( 'ok' );
+				done();
+			});
+		});
+
+
+
+		it("should assign the matches to the value of the `matchname` attribute", function(done){
+
+			var test = "$(HTTP_HOST) matches '''^local(.*)'''";
+			var str = '<esi:choose><esi:when test="'+ test +'" matchname=pathvars>$(pathvars{1})</esi:when></esi:choose>';
+
+			var esi = ESI( str, null, {
+				HTTP_HOST : 'localok'
+			});
+
+			esi.then(function( response ){
+				expect( response ).to.be.eql( 'ok' );
+				done();
+			});
+		});
+	});
 });
 
 
