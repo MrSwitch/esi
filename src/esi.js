@@ -168,11 +168,9 @@ function processESIInclude(attrs, body, VARS, str){
 	// If this fails, check for an alt attribute
 	.then(
 		null,
-		function(){
+		function( err ){
 
 			// The response returned a responseState greater than 400
-
-
 			// Is there an alternative path?
 
 			if( attrs.alt ){
@@ -187,21 +185,23 @@ function processESIInclude(attrs, body, VARS, str){
 
 				});
 			}
-			else{
 
-				log('error','Could not access '+attrs.src);
-
-				return str;
-			}
+			// Nope continue with error
+			throw err;
 		}
 	)
 
 	// If all else fails
-	.then(null,
-		function(){
+	.then(function(body){
+
+			// Run the Response back through ESI
+			return ESI( body, null, VARS );
+
+		},
+		function(err){
 
 			// The response returned a responseState greater than 400
-			log('error','Could not access '+attrs.src);
+			log('error',err);
 
 			// return the esi:tag as it was given, there is nowt to do
 			return str;
@@ -333,7 +333,7 @@ function makeRequest( url, resolve, reject ){
 
 			log('error',res.statusCode);
 
-			reject();
+			reject( url );
 
 			return;
 		}
@@ -347,17 +347,13 @@ function makeRequest( url, resolve, reject ){
 
 		res.on('end', function(){
 
-			// Check whether the response also contains ESI fragments
-
-			var esi = ESI( body );
-
-			// resolve this Promise with the response from the server
-			esi.then(resolve);
+			// Resolve the content
+			resolve( body );
 
 		});
 
 	}).on('error', function(e){
-		reject();
+		reject( url );
 	});
 }
 
@@ -404,7 +400,7 @@ function getAttributes(str, undefined){
 // Dictionary replace
 //
 function DictionaryReplace(str, hash){
-	return str.replace(/\$\((.*?)\)/, function(m, key){
+	return str.replace(/\$\((.*?)\)/g, function(m, key){
 		if(key in hash){
 			return hash[key];
 		}
