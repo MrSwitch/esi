@@ -115,6 +115,8 @@ function processESITags(str){
 						this[ attrs.matchname ] = result;
 					}
 
+					log( log.INFO, 'esi:when', attrs.test );
+
 					// Execute this block of code
 					return ESI( body, null, this );
 				}
@@ -128,10 +130,16 @@ function processESITags(str){
 			if( this.hasOwnProperty('MATCHES') ){
 				return '';
 			}
+
+			log( log.INFO, 'esi:otherwise' );
+
 			// Otherwise, process the esi:otherwise block
 			return ESI( body, null, this );
 
 		case 'esi:assign':
+
+			log( log.INFO, 'esi:assign', attrs.name + ' = ' + attrs.value );
+
 			// Add to the dictionary
 			this[attrs.name] = attrs.value;
 			return '';
@@ -139,8 +147,12 @@ function processESITags(str){
 		case 'esi:comment':
 		case 'esi:remove':
 			// All else, return empty string...
+			log( log.INFO, tag, 'expunged' );
 			return '';
 	}
+
+	// Warn
+	log( log.WARN, tag, 'unrecognised' );
 
 	// All else, return empty string...
 	return str;
@@ -162,12 +174,17 @@ function processESIInclude(attrs, body, VARS, str){
 		return str;
 	}
 
+	// Set the src
+	var src = attrs.src;
+
 	// Replace the section with a new Promise object for this tag and add it to the Promise Array
 
 	return new Promise(function( resolve, reject ){
 
 		// Make request
-		makeRequest( DictionaryReplace( attrs.src, VARS ), resolve, reject );
+		src = DictionaryReplace( attrs.src, VARS );
+
+		makeRequest( src, resolve, reject );
 
 	})
 
@@ -181,13 +198,15 @@ function processESIInclude(attrs, body, VARS, str){
 
 			if( attrs.alt ){
 
+				log( log.WARN, 'esi:include', err );
+
 				// Make the request again
 
 				return new Promise( function( resolve, reject ){
 
-					log( 'fallback', attrs.alt );
+					src = DictionaryReplace( attrs.alt, VARS );
 
-					makeRequest( DictionaryReplace( attrs.alt, VARS ), resolve, reject );
+					makeRequest( src, resolve, reject );
 
 				});
 			}
@@ -200,6 +219,8 @@ function processESIInclude(attrs, body, VARS, str){
 	// If all else fails
 	.then(function(body){
 
+			log( log.INFO, 'esi:include', src );
+
 			// Run the Response back through ESI
 			return ESI( body, null, VARS );
 
@@ -207,7 +228,7 @@ function processESIInclude(attrs, body, VARS, str){
 		function(err){
 
 			// The response returned a responseState greater than 400
-			log('error',err);
+			log( log.FAIL, 'esi:include', err );
 
 			// return the esi:tag as it was given, there is nowt to do
 			return str;
@@ -222,6 +243,8 @@ function processESIInclude(attrs, body, VARS, str){
 
 function processESIVars(attrs, body, VARS){
 
+	log( log.INFO, 'esi:vars' );
+
 	if( !body && attrs.name ){
 		return DictionaryReplace( attrs.name, VARS );
 	}
@@ -234,8 +257,6 @@ function processESIVars(attrs, body, VARS){
 // Process a conditiional test
 
 function processESICondition( test, VARS ){
-
-
 
 	// There can be mmultiple tests
 	var tests = test.split(/\s+(\|\||\&\&)\s+/g);
@@ -322,10 +343,6 @@ function processESICondition( test, VARS ){
 
 function makeRequest( url, resolve, reject ){
 
-	// Report
-
-	log("request", url);
-
 
 	// Get the resource
 
@@ -336,8 +353,6 @@ function makeRequest( url, resolve, reject ){
 		// Reject the promise if the response Code is >= 400
 
 		if(res.statusCode >= 400){
-
-			log('error',res.statusCode);
 
 			reject( url );
 
@@ -427,13 +442,23 @@ function DictionaryReplace(str, hash){
 
 // log
 
-function log(label, value){
+function log( state, label, value){
 
 	if( module.exports.debug ){
-
-		var color = label === 'error' ? 1 : 2;
-
-		console.log("\x1B[33m%s\x1B[39m: \x1b[9"+color+"m%s\x1B[39m \x1b[3"+color+"m%s\x1B[39m", "esi", label, value);
-
+		console.log( state, label, value);
 	}
+
 }
+(function(){
+
+	var states = {
+		'INFO' : 2,
+		'FAIL' : 1,
+		'WARN' : 4
+	};
+	for( var x in states ){
+		var color = states[x];
+		log[x] = "\x1B[33mESI\x1B[39m: \x1b[9"+color+"m%s\x1B[39m \x1b[3"+color+"m%s\x1B[39m";
+	}
+
+})();
