@@ -428,7 +428,7 @@ function DictionaryReplace(str, hash){
 		if(key in hash){
 			var val = hash[key];
 			if( subkey ){
-				val = val[subkey];
+				val = val instanceof Object ? val[subkey] : '';
 			}
 			return val === undefined ? '' : val;
 		}

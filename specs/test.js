@@ -107,6 +107,18 @@ describe("esi:assign, esi:vars and $(key)", function(){
 			done();
 		});
 	});
+
+	it("should return nothing when unable to to match the variables", function(done){
+
+		var str = "<esi:assign name='test' value='output'/>";
+		str += "<esi:vars name=$(test{1})/>";
+
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( '' );
+			done();
+		});
+	});
 });
 
 
@@ -161,12 +173,12 @@ describe("esi:include", function(){
 	});
 
 
-	it("should return the ESI fragment if it can't honor the request", function(done){
+	it("should not return the ESI fragment if it can't honor the request", function(done){
 
 		var str = '<esi:include src="'+ localhost + 404 + '"></esi:include>';
 		var esi = ESI( str );
 		esi.then(function( response ){
-			expect( response ).to.be.eql( str );
+			expect( response ).to.be.eql( '' );
 			done();
 		});
 	});
