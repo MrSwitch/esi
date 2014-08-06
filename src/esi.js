@@ -88,7 +88,7 @@ function processESITags(str){
 
 		// Replaces the content
 		case 'esi:include':
-			return processESIInclude( attrs, body, this, str);
+			return processESIInclude( attrs, body, this );
 
 		// Apply variables to the block
 		case 'esi:vars':
@@ -164,14 +164,15 @@ function processESITags(str){
 // Process ESI include
 //
 
-function processESIInclude(attrs, body, VARS, str){
+function processESIInclude(attrs, body, VARS){
 
 
 	if( !attrs.src ){
 
 		// Urgh this should have contained a src attibute
 		// Just spit it back, its not in a correct format
-		return str;
+		log( log.FAIL, 'esi:include', 'Missing src attribute' );
+		return '';
 	}
 
 	// Set the src
@@ -231,7 +232,7 @@ function processESIInclude(attrs, body, VARS, str){
 			log( log.FAIL, 'esi:include', err );
 
 			// return the esi:tag as it was given, there is nowt to do
-			return str;
+			return '';
 		}
 	);
 }
@@ -445,7 +446,7 @@ function DictionaryReplace(str, hash){
 function log( state, label, value){
 
 	if( module.exports.debug ){
-		console.log( state, label, value);
+		console.log( state, label, value !== undefined ? value : '' );
 	}
 
 }
