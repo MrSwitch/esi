@@ -256,17 +256,20 @@ function processESIVars(attrs, body, VARS){
 
 
 // Process a conditiional test
+var reg_trim = /(^\s+|\s+$)/;
+var reg_esi_condition = /^(.*?)\s+(=|==|<=|>=|matches|matches_i|has|has_i)\s+('''|)(.*?)\3$/;
+var reg_esi_condition_separator = /\s+(\|\||\&\&)\s+/g;
 
 function processESICondition( test, VARS ){
 
 	// There can be mmultiple tests
-	var tests = test.split(/\s+(\|\||\&\&)\s+/g);
+	var tests = test.split(reg_esi_condition_separator);
 	var bool, matches;
 
 	for ( var i=0; i< tests.length; i++ ){
 
 		// Trim white spaces
-		test = tests[i].replace(/(^\s+|\s+$)/,'');
+		test = tests[i].replace(reg_trim,'');
 
 
 		// Logical operator
@@ -283,7 +286,7 @@ function processESICondition( test, VARS ){
 		test.replace(/^\!/,'');
 
 		// Match
-		var m = test.match(/^(.*?)\s+(=|==|<=|>=|matches|matches_i|has|has_i)\s+('''|)(.*?)\3$/);
+		var m = test.match(reg_esi_condition);
 
 		// Boolean condition
 		if( !m ){
