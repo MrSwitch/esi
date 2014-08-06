@@ -430,7 +430,7 @@ function DictionaryReplace(str, hash){
 			if( subkey ){
 				val = val[subkey];
 			}
-			return val;
+			return val === undefined ? '' : val;
 		}
 		return '';
 	});
