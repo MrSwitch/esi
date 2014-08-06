@@ -1,6 +1,4 @@
-# ESI (Edge Side Include)
-
-[![Build Status](https://travis-ci.org/MrSwitch/esi.svg?branch=master)](https://travis-ci.org/MrSwitch/esi)
+# ESI (Edge Side Include) [![Build Status](https://travis-ci.org/MrSwitch/esi.svg?branch=master)](https://travis-ci.org/MrSwitch/esi)
 
 Edge Side Includes processing for Client and Node environments
 
