@@ -19,41 +19,41 @@ var http = require('http');
 
 var request = require('supertest');
 
-var SUPER_TEST_HOST = /127.0.0.1:\d/;
-
-
-var srv, test;
 var test_port = 3334,
 	localhost = "http://localhost:"+test_port+"/";
 
-before(function(){
-
-	// The test server merely writes out the the GET path in the body of the response
-	// This makes testing easier, since each test can effectively mock its own environment
-
-	test = connect()
-		.use( ESIConnect )
-		.use( function( req, res ){
-			// Check if the request URL is returning a number?
-			var m;
-			if( ( m = req.url.match(/^\/(\d+)$/) ) ){
-				res.writeHead(parseInt(m[1],10),{});
-			}
-			res.write( decodeURIComponent(req.url).replace(/^\/|\/$/g,'') );
-			res.end();
-		});
-
-	srv = http.createServer(test).listen(test_port);
-});
-
-after(function(){
-	srv.close();
-});
-
-
-
 
 describe("ESI", function(){
+
+
+
+	var srv, test;
+
+
+	before(function(){
+
+		// The test server merely writes out the the GET path in the body of the response
+		// This makes testing easier, since each test can effectively mock its own environment
+
+		test = connect()
+			.use( ESIConnect )
+			.use( function( req, res ){
+				// Check if the request URL is returning a number?
+				var m;
+				if( ( m = req.url.match(/^\/(\d+)$/) ) ){
+					res.writeHead(parseInt(m[1],10),{});
+				}
+				res.write( decodeURIComponent(req.url).replace(/^\/|\/$/g,'') );
+				res.end();
+			});
+
+		srv = http.createServer(test).listen(test_port);
+	});
+
+	after(function(){
+		srv.close();
+	});
+
 
 	it("should return a promise object", function(){
 		var esi = ESI('text');
@@ -325,12 +325,40 @@ describe("esi:choose", function(){
 
 describe("ESI via webserver", function(){
 
+	var test, srv;
+
+	// Choose another test port
+	beforeEach(function(){
+
+		// The test server merely writes out the the GET path in the body of the response
+		// This makes testing easier, since each test can effectively mock its own environment
+
+		test = connect()
+			.use( ESIConnect )
+			.use( function( req, res ){
+				// Check if the request URL is returning a number?
+				var m;
+				if( ( m = req.url.match(/^\/(\d+)$/) ) ){
+					res.writeHead(parseInt(m[1],10),{});
+				}
+				res.write( decodeURIComponent(req.url).replace(/^\/|\/$/g,'') );
+				res.end();
+			});
+
+		srv = http.createServer(test).listen(test_port);
+	});
+
+	afterEach(function(){
+		srv.close();
+	});
+
+
 
 	it("should pass through non-esi text", function(done){
 
 		request(test)
-			.get('/hello')
-			.expect(200, 'hello')
+			.get('/ok')
+			.expect(200, 'ok')
 			.end(done);
 	});
 
@@ -347,7 +375,21 @@ describe("ESI via webserver", function(){
 	});
 
 
-	describe("should assign HTTP VARS", function(){
+	it("should let us define esi.vars.custom_name", function(done){
+
+		// Assign a custom variable
+		ESIConnect.vars.custom = 'ok';
+
+		var snipet = '<esi:vars>$(custom)</esi:vars>';
+
+		request(test)
+			.get('/'+snipet)
+			.expect(200, 'ok' )
+			.end(done);
+	});
+
+
+	describe("should assign default HTTP VARS", function(){
 
 		[
 			'HTTP_HOST',
@@ -361,7 +403,7 @@ describe("ESI via webserver", function(){
 		].forEach(function(vars){
 
 			it(vars, function(done){
-				var snipet = '$('+vars+')';
+				var snipet = '<esi:vars>$('+vars+')</esi:vars>';
 
 				request(test)
 					.get('/'+(snipet)+'?test=ok')
@@ -372,5 +414,6 @@ describe("ESI via webserver", function(){
 
 		});
 	});
+
 
 });

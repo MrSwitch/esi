@@ -17,9 +17,15 @@ module.exports = function( req, res, next ){
 	// Set debug level in module	
 	ESI.debug = module.exports.debug;
 
-
 	// Define the VARS which will be passed
-	var HTTP_VARS = get_http_vars( req );
+	var VARS = get_http_vars( req );
+
+	// Override with any custom variables
+	if( module.exports.vars ){
+		for( var x in module.exports.vars ){
+			VARS[x] = module.exports.vars[x];
+		}
+	}
 
 
 	// Store the original, write and end functions
@@ -94,7 +100,7 @@ module.exports = function( req, res, next ){
 
 		// Does this have an ESI fragment
 
-		var esi = ESI( chunk, encoding, HTTP_VARS );
+		var esi = ESI( chunk, encoding, VARS );
 
 
 		// Push the request into a queue
@@ -128,6 +134,9 @@ module.exports = function( req, res, next ){
 
 };
 
+
+// Placeholder for custom vars
+module.exports.vars = {};
 
 
 //
