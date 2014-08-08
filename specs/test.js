@@ -236,7 +236,6 @@ describe("esi:text", function(){
 		var str = '<esi:assign name="document" value="ok"/>'+text+'<esi:text>'+text+'</esi:text>';
 		var esi = ESI( str );
 		esi.then(function( response ){
-			console.log(response);
 			expect( response ).to.be.eql( 'ok' + text );
 			done();
 		});
