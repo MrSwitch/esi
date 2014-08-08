@@ -144,6 +144,10 @@ function processESITags(str){
 			this[attrs.name] = attrs.value;
 			return '';
 
+		case 'esi:text':
+
+			return body;
+
 		case 'esi:comment':
 		case 'esi:remove':
 			// All else, return empty string...
