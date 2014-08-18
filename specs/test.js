@@ -36,7 +36,7 @@ describe("ESI", function(){
 		// This makes testing easier, since each test can effectively mock its own environment
 
 		test = connect()
-			.use( ESIConnect )
+//			.use( ESIConnect )
 			.use( function( req, res ){
 				// Check if the request URL is returning a number?
 				var m;
@@ -180,6 +180,33 @@ describe("esi:include", function(){
 		esi.then(function( response ){
 			expect( response ).to.be.eql( '' );
 			done();
+		});
+	});
+
+
+	describe('Attr dca', function(){
+		it("should process the response fragment body as ESI if the attribute dca='esi'", function(done){
+
+			var body = "<esi:remove></esi:remove>ok";
+
+			var str = '<esi:include dca="esi" src="'+ localhost + encodeURIComponent(body) + '"></esi:include>';
+			var esi = ESI( str );
+			esi.then(function( response ){
+				expect( response ).to.be.eql( 'ok' );
+				done();
+			});
+		});
+
+		it("should not process the response fragment body as ESI if the attribute dca!='esi'", function(done){
+
+			var body = "<esi:remove></esi:remove>";
+
+			var str = '<esi:include src="'+ localhost + encodeURIComponent(body) + '"></esi:include>';
+			var esi = ESI( str );
+			esi.then(function( response ){
+				expect( response ).to.be.eql( body );
+				done();
+			});
 		});
 	});
 });

@@ -71,7 +71,6 @@ function processESITags(str){
 	if( !m ){
 		// Are there any items in here which are in the local dictionary
 		// Do a quick dictionary replace and spit it back
-
 		return DictionaryReplace( str, this );
 	}
 
@@ -226,8 +225,13 @@ function processESIInclude(attrs, body, VARS){
 
 			log( log.INFO, 'esi:include', src );
 
-			// Run the Response back through ESI
-			return ESI( body, null, VARS );
+			// Run the Response back through ESI?
+			if(attrs.dca === 'esi'){
+				return ESI( body, null, VARS );
+			}
+			else {
+				return body;
+			}
 
 		},
 		function(err){
