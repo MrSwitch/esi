@@ -2,6 +2,7 @@
 // ESI
 //
 
+// This is already a part of the global
 var Promise = require('promise');
 
 var http = require('http');
@@ -60,8 +61,6 @@ function ESI( body, encoding, VARS ){
 
 function processESITags(str){
 
-
-
 	// Get Tag Attributes in an object
 
 	var m = str.match(reg_esi_tag);
@@ -88,6 +87,10 @@ function processESITags(str){
 		// Replaces the content
 		case 'esi:include':
 			return processESIInclude( attrs, body, this );
+
+		// Replaces the content
+		case 'esi:try':
+			return processESITry( body, this );
 
 		// Apply variables to the block
 		case 'esi:vars':
@@ -140,7 +143,8 @@ function processESITags(str){
 			log( log.INFO, 'esi:assign', attrs.name + ' = ' + attrs.value );
 
 			// Add to the dictionary
-			this[attrs.name] = attrs.value;
+			this[attrs.name] = processESIExpression( attrs.value, this );
+
 			return '';
 
 		case 'esi:text':
@@ -239,10 +243,62 @@ function processESIInclude(attrs, body, VARS){
 			// The response returned a responseState greater than 400
 			log( log.FAIL, 'esi:include', err );
 
-			// return the esi:tag as it was given, there is nowt to do
-			return '';
+			if( attrs.onerror === "continue" ){
+				// return an empty string
+				return '';
+			}
+			else{
+				throw err;
+			}
 		}
 	);
+}
+
+
+//
+// Run the contents of the ESI attempt block
+//
+
+function processESITry( body, VARS ){
+
+	// Seperate out the contents of the esi:try block to be esi:attempt and esi:except
+
+	var parts = splitText( body ),
+		attempt,
+		except;
+
+
+	// Process the contents of the ESI block, matching the esi:attempt and esi:except blocks
+
+	for(var i=0;i<parts.length;i++){
+
+		var str = parts[i];
+		var m = str.match(reg_esi_tag);
+		var tag = m && m[1];
+
+		if( tag === 'esi:attempt' ){
+			attempt = m[3];
+		}
+		else if ( tag === 'esi:except' ){
+			except = m[3];
+		}
+	}
+
+
+	// Log
+	log( log.INFO, 'esi:attempt' );
+
+	// Run through esi processing
+
+	return ESI( attempt, null, VARS ).then( null, function(){
+
+		log( log.WARN, 'esi:except' );
+
+		// Should that fail, return the except
+		return ESI( except, null, VARS );
+
+	});
+
 }
 
 
@@ -349,12 +405,28 @@ function processESICondition( test, VARS ){
 }
 
 
+// Process ESI Expression
+
+function processESIExpression(txt, VARS){
+
+	// Tidy
+	if( !txt && txt.length === 0 ){
+		return '';
+	}
+	else if(txt[0]==="'"){
+		return txt.replace(/^\'|\'$/g,'');
+	}
+
+	return DictionaryReplace( txt, VARS );
+
+}
 
 
 // Make an HTTP request for a resource
 
 function makeRequest( url, resolve, reject ){
 
+	log( log.INFO, url );
 
 	// Get the resource
 
@@ -386,6 +458,7 @@ function makeRequest( url, resolve, reject ){
 		});
 
 	}).on('error', function(e){
+
 		reject( url );
 	});
 }

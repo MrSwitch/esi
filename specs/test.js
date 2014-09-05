@@ -22,37 +22,42 @@ var request = require('supertest');
 var test_port = 3334,
 	localhost = "http://localhost:"+test_port+"/";
 
+var srv, test;
+
+
+beforeEach(function(done){
+
+	// The test server merely writes out the the GET path in the body of the response
+	// This makes testing easier, since each test can effectively mock its own environment
+
+	test = connect()
+//			.use( ESIConnect )
+		.use( function( req, res ){
+			// Check if the request URL is returning a number?
+			var m;
+			if( ( m = req.url.match(/^\/(\d+)$/) ) ){
+				res.writeHead(parseInt(m[1],10),{});
+			}
+			var body = decodeURIComponent(req.url).replace(/^\/|\/$/g,'');
+			res.write( body );
+			res.end();
+		});
+
+	srv = http.createServer(test).listen(++test_port, done);
+	localhost = "http://localhost:"+test_port+"/";
+
+});
+
+afterEach(function(done){
+	srv.close();
+	done();
+});
+
+
+
 
 describe("ESI", function(){
 
-
-
-	var srv, test;
-
-
-	before(function(){
-
-		// The test server merely writes out the the GET path in the body of the response
-		// This makes testing easier, since each test can effectively mock its own environment
-
-		test = connect()
-//			.use( ESIConnect )
-			.use( function( req, res ){
-				// Check if the request URL is returning a number?
-				var m;
-				if( ( m = req.url.match(/^\/(\d+)$/) ) ){
-					res.writeHead(parseInt(m[1],10),{});
-				}
-				res.write( decodeURIComponent(req.url).replace(/^\/|\/$/g,'') );
-				res.end();
-			});
-
-		srv = http.createServer(test).listen(test_port);
-	});
-
-	after(function(){
-		srv.close();
-	});
 
 
 	it("should return a promise object", function(){
@@ -86,7 +91,7 @@ describe("esi:assign, esi:vars and $(key)", function(){
 
 	it("should esi:assign a value to be used in ESI fragments", function(done){
 
-		var str = "<esi:assign name='test' value='quote\\'s'/>";
+		var str = '<esi:assign name="test" value="\'quote\\\'s\'"/>';
 		str += "<esi:vars>$(test)</esi:vars>";
 
 		var esi = ESI( str );
@@ -98,19 +103,19 @@ describe("esi:assign, esi:vars and $(key)", function(){
 
 	it("should return the value of items defined in an esi:vars `name` attribute", function(done){
 
-		var str = "<esi:assign name='test' value='output'/>";
+		var str = '<esi:assign name="test" value="\'ok\'"/>';
 		str += "<esi:vars name=$(test)/>";
 
 		var esi = ESI( str );
 		esi.then(function( response ){
-			expect( response ).to.be.eql( 'output' );
+			expect( response ).to.be.eql( 'ok' );
 			done();
 		});
 	});
 
 	it("should return nothing when unable to to match the variables", function(done){
 
-		var str = "<esi:assign name='test' value='output'/>";
+		var str = '<esi:assign name="test" value="\'output\'"/>';
 		str += "<esi:vars name=$(test{1})/>";
 
 		var esi = ESI( str );
@@ -173,18 +178,31 @@ describe("esi:include", function(){
 	});
 
 
-	it("should not return the ESI fragment if it can't honor the request", function(done){
+	describe('onerror=continue', function(){
 
-		var str = '<esi:include src="'+ localhost + 404 + '"></esi:include>';
-		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( '' );
-			done();
+
+		it("should throw an expection when the ESI fragment returns an error, and no onerror handler is specified", function(done){
+
+			var str = '<esi:include src="'+ localhost + 404 + '"></esi:include>';
+			var esi = ESI( str );
+			esi.then(null, function( response ){
+				done();
+			});
 		});
+
+		it("should catch errors and pass through an empty string if attribute onerror=continue is defined", function(done){
+
+			var str = '<esi:include src="'+ localhost + 404 + '" onerror="continue"></esi:include>ok';
+			var esi = ESI( str );
+			esi.then(function( response ){
+				expect( response ).to.be.eql( 'ok' );
+				done();
+			});
+		});
+
 	});
 
-
-	describe('Attr dca', function(){
+	describe('dca=esi|none', function(){
 		it("should process the response fragment body as ESI if the attribute dca='esi'", function(done){
 
 			var body = "<esi:remove></esi:remove>ok";
@@ -210,6 +228,42 @@ describe("esi:include", function(){
 		});
 	});
 });
+
+
+
+
+
+//
+// If an endpoint returns a 404 then esi:try will set the fallback
+//
+describe('esi:try', function(){
+
+	it("should return the esi:accept block, and not the esi:except block, if response code < 400", function(done){
+
+		var str = '<esi:try><esi:attempt><esi:include src="'+ localhost + 'ok"></esi:include></esi:attempt><esi:except>fail</esi:except></esi:try>';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'ok' );
+			done();
+		});
+
+	});
+
+	it("should run the esi:except block if esi:attempt block recieves a response code >= 400", function(done){
+
+		var str = '<esi:try><esi:attempt><esi:include src="'+ localhost + 404 + '"></esi:include></esi:attempt><esi:except>ok</esi:except></esi:try>';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'ok' );
+			done();
+		});
+
+	});
+
+});
+
+
+
 
 
 
@@ -365,18 +419,17 @@ describe("esi:choose", function(){
 
 
 
-
 describe("ESI via webserver", function(){
 
-	var test, srv;
+	var testCDN;
 
 	// Choose another test port
-	beforeEach(function(){
+	before(function(done){
 
 		// The test server merely writes out the the GET path in the body of the response
 		// This makes testing easier, since each test can effectively mock its own environment
 
-		test = connect()
+		testCDN = connect()
 			.use( ESIConnect )
 			.use( function( req, res ){
 				// Check if the request URL is returning a number?
@@ -384,22 +437,23 @@ describe("ESI via webserver", function(){
 				if( ( m = req.url.match(/^\/(\d+)$/) ) ){
 					res.writeHead(parseInt(m[1],10),{});
 				}
-				res.write( decodeURIComponent(req.url).replace(/^\/|\/$/g,'') );
+				var body = decodeURIComponent(req.url).replace(/^\/|\/$/g,'');
+				res.write( body );
 				res.end();
 			});
 
-		srv = http.createServer(test).listen(test_port);
+		srvCDN = http.createServer(testCDN).listen(test_port-10, done);
 	});
 
-	afterEach(function(){
-		srv.close();
+	after(function(done){
+		srvCDN.close();
+		done();
 	});
-
 
 
 	it("should pass through non-esi text", function(done){
 
-		request(test)
+		request(testCDN)
 			.get('/ok')
 			.expect(200, 'ok')
 			.end(done);
@@ -408,11 +462,13 @@ describe("ESI via webserver", function(){
 
 	it("should process ESI markup", function(done){
 
+		this.timeout(5000);
+
 		var resolve = 'hello';
 		var snipet = '<esi:include src="'+ localhost + resolve +'"/>'+resolve;
 
-		request(test)
-			.get('/'+(snipet))
+		request(testCDN)
+			.get('/'+snipet)
 			.expect(200, resolve + resolve)
 			.end(done);
 	});
@@ -425,7 +481,7 @@ describe("ESI via webserver", function(){
 
 		var snipet = '<esi:vars>$(custom)</esi:vars>';
 
-		request(test)
+		request(testCDN)
 			.get('/'+snipet)
 			.expect(200, 'ok' )
 			.end(done);
@@ -448,7 +504,7 @@ describe("ESI via webserver", function(){
 			it(vars, function(done){
 				var snipet = '<esi:vars>$('+vars+')</esi:vars>';
 
-				request(test)
+				request(testCDN)
 					.get('/'+(snipet)+'?test=ok')
 					.set('cookie', 'biscuit=word;')
 					.expect(200, /.+/ )

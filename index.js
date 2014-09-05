@@ -61,7 +61,13 @@ module.exports = function( req, res, next ){
 			var esi = item[0];
 			var encoding = item[1];
 
-			esi.then( function( r ){
+			esi.then( null, function(e){
+
+				// on error
+				// Write nothing out 
+				return '';
+
+			}).then( function( r ){
 
 				// Write this out
 				original_write.call( res, r, encoding );
@@ -92,11 +98,15 @@ module.exports = function( req, res, next ){
 
 	res.write = function( chunk, encoding ){
 
+		if( !chunk ){
+			// dont do anything
+			return;
+		}
+
 		// remove the res header
 
 		if(!res.headersSent)
 			res.removeHeader('content-length');
-
 
 		// Does this have an ESI fragment
 
