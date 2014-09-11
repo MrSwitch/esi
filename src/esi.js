@@ -426,7 +426,7 @@ function processESIExpression(txt, VARS){
 
 function makeRequest( url, resolve, reject ){
 
-	log( log.INFO, url );
+	//log( log.INFO, url );
 
 	// Get the resource
 
