@@ -1,11 +1,11 @@
 language: node_js
-node_js:
-  - "0.10"
+node_js: 
+- "0.10"
 deploy: 
   provider: npm
   email: andrewjdodson@gmail.com
   api_key: 
-    secure: abqUceXSYbLwfwwOL6fZdYsaNVvPkJr1JdAWU+IJ9d1AKMTF50P6E1gZT4L1q6v/5Suio/4z2BT9Eg2R9jckEPwoVGl8s3fyaUjuz1JE8TiH2aecCx0PPn8jv+eUdiy0otzAkU7kAUN4cBPvS1UmT++o7/kWsxfQBD2eJlI8ZbQ=
-  "on":
-    branch: master
+    secure: dYaXYxkNajZPRUeI2iB5gvcNw12IgK4XLfPAQ9vvEdHh+iYKW5FHwDSDeZM+SR0KupB9AlHShbJDc5eeNKrNsRAc5G13EBiyR+CTA/ZDd/YytpUzcBOJtq9BovUodWYyscUe9204Ll7JMGgBKezwtWQ8/4csu1q+I0b9TVC348A=
+  "on": 
+    tags: true
     repo: MrSwitch/esi
