@@ -178,6 +178,30 @@ describe("esi:include", function(){
 	});
 
 
+	it("should inherit parent scope of the caller", function(done){
+		var str = '';
+		str += '<esi:assign name="test" value="ok" />';
+		str += '<esi:include src="'+ localhost + encodeURIComponent('<esi:vars>$(test)</esi:vars>') + '" dca="esi"/>';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'ok' );
+			done();
+		});	
+	});
+
+	it("should sandbox variables set in the response fragment", function(done){
+		var str = '';
+		str += '<esi:assign name="test" value="ok" />';
+		str += '<esi:include src="'+ localhost + encodeURIComponent('<esi:assign name="test" value="fail" />') + '" dca="esi"/>';
+		str += '<esi:include src="'+ localhost + encodeURIComponent('<esi:vars>$(test)</esi:vars>') + '" dca="esi"/>';
+		var esi = ESI( str );
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'ok' );
+			done();
+		});	
+	});
+
+
 	describe('onerror=continue', function(){
 
 
@@ -377,6 +401,28 @@ describe("esi:choose", function(){
 			});
 		});
 	});
+
+
+	it("should reset the MATCHES between esi:choose's", function(done){
+
+		var test = "$(HTTP_HOST) matches '''^local(.*)'''";
+		var str = '<esi:choose><esi:when test="'+ test +'"><esi:assign name="TITLE" value="\'fail\'"/></esi:when></esi:choose>';
+		str += '<esi:choose><esi:when test="'+ test +'"><esi:assign name="TITLE" value="\'ok\'"/></esi:when></esi:choose>';
+		str += '<esi:vars>$(TITLE)</esi:vars>';
+
+		var esi = ESI( str, null, {
+			HTTP_HOST : 'localok'
+		});
+
+		esi.then(function( response ){
+			expect( response ).to.be.eql( 'ok' );
+			done();
+		});
+	});
+
+
+
+
 
 	describe("esi:when", function(){
 

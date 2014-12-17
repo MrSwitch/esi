@@ -33,9 +33,6 @@ function ESI( body, encoding, VARS ){
 	body = body.replace(reg_esi_comments, '<esi:vars>$1</esi:vars>');
 
 
-	// Inherit Dictionary of VARS
-	VARS = Object.create(VARS||{});
-
 
 	// Split the current string into parts, some including the ESI fragment and then the bits in between
 	// Loop through and process each of the ESI fragments, mapping them back to a parts array containing strings and the Promise objects
@@ -98,7 +95,14 @@ function processESITags(str){
 
 		// Call the esi:choose as a block
 		case 'esi:choose':
-			return ESI( body, null, this );
+			// ESI
+			var r = ESI( body, null, this );
+
+			// RESET MATCHES
+			if( this.hasOwnProperty('MATCHES') ){
+				delete this.MATCHES;
+			}
+			return r;
 
 		// Check
 		case 'esi:when':
@@ -172,6 +176,11 @@ function processESITags(str){
 //
 
 function processESIInclude(attrs, body, VARS){
+
+
+	// Clone the VARS
+	// Set the prototype
+	VARS = Object.create(VARS||{});
 
 
 	if( !attrs.src ){
