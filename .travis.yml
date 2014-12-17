@@ -9,3 +9,4 @@ deploy:
   "on": 
     tags: true
     repo: MrSwitch/esi
+    all_branches: true
