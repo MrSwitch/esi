@@ -7,45 +7,45 @@
 # Example
 You want to embed the fragment of HTML from "http://snipets.com/abc.html" within an HTML document.
 
-```html
+    ```html
     blah blah, oh and here i embed in the page a snipet using an ESI server ...
     <esi:include src="http://snipets.com/snipet.html"></esi:include>
-```
+    ```
 
 **snipet.html**
 
-```html
+    ```html
     <b>Snipet</b>
-```
+    ```
 
 
 With Node ESI script, you can pre-process ESI tags. 
 
 ## Include the script
 
-```bash
+    ```bash
     npm install esi --save
-```
+    ```
 
 Simply pass it into any service which uses http.createServer, e.g. below i'm using connect.
 
 ## Add ESI as middleware
 
-```javascript
+    ```javascript
     var app = require('connect')();
 
     var esi = require('esi');
     app.use( esi );
 
     var srv = http.createServer(app).listen( 8080 );
-```
+    ```
 
 Now the page is constructed and the response looks like this...
 
-```html
+    ```html
     blah blah, oh and here i embed in the page a snipet using an ESI server ...
     <b>Snipet</b>
-```
+    ```
 
 
 
@@ -56,9 +56,9 @@ Now the page is constructed and the response looks like this...
 
 View [the ESI specs](https://travis-ci.org/MrSwitch/esi) or from the install directory run.
 
-```bash
+    ```bash
     mocha specs -R spec
-```
+    ```
 
 
 
@@ -68,13 +68,13 @@ View [the ESI specs](https://travis-ci.org/MrSwitch/esi) or from the install dir
 
 Debug - prints out the tag handling
 
-```javascript
+    ```javascript
     esi.debug = true;
-```
+    ```
 
 
 VARS - set/modify environment variables
 
-```javascript
+    ```javascript
     esi.vars.HTTP_HOST = 'www.google.com';
-```
+    ```
