@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/MrSwitch/esi.svg?branch=master)](https://travis-ci.org/MrSwitch/esi)
 
-[Edge Side Includes](http://www.w3.org/TR/esi-lang) (ESI) Language is a templating language supported by popular CDN's such as Akamai and Varnish. This NPM module will pre-processes ESI tags within your node server environment.
+[Edge Side Includes](http://www.w3.org/TR/esi-lang) (ESI) Language is a templating language supported by popular CDN's such as Akamai and Varnish. This NPM module will preprocess ESI tags within your node server environment.
 
 
 
