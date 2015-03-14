@@ -1,3 +1,6 @@
+require('./helper');
+
+
 var ESIConnect = require('../index.js');
 
 
@@ -10,36 +13,8 @@ var connect = require('connect');
 var http = require('http');
 var request = require('supertest');
 
-var test_port = 3001,
-	localhost = "http://localhost:"+test_port+"/";
+var test_port = 3001;
 
-
-beforeEach(function(done){
-
-	// The test server merely writes out the the GET path in the body of the response
-	// This makes testing easier, since each test can effectively mock its own environment
-
-	test = connect()
-		.use( function( req, res ){
-			// Check if the request URL is returning a number?
-			var m;
-			if( ( m = req.url.match(/^\/(\d+)$/) ) ){
-				res.writeHead(parseInt(m[1],10),{});
-			}
-			var body = decodeURIComponent(req.url).replace(/^\/|\/$/g,'');
-			res.write( body );
-			res.end();
-		});
-
-	srv = http.createServer(test).listen(++test_port, done);
-	localhost = "http://localhost:"+test_port+"/";
-
-});
-
-afterEach(function(done){
-	srv.close();
-	done();
-});
 
 
 
