@@ -18,9 +18,6 @@ var test_port = 3001;
 
 
 
-
-
-
 describe("ESI via webserver", function(){
 
 	var testCDN,srvCDN;
