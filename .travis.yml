@@ -1,12 +1,14 @@
 language: node_js
-node_js: 
+node_js:
 - "0.10"
-deploy: 
+- "0.12"
+- "iojs"
+deploy:
   provider: npm
   email: andrewjdodson@gmail.com
-  api_key: 
+  api_key:
     secure: dYaXYxkNajZPRUeI2iB5gvcNw12IgK4XLfPAQ9vvEdHh+iYKW5FHwDSDeZM+SR0KupB9AlHShbJDc5eeNKrNsRAc5G13EBiyR+CTA/ZDd/YytpUzcBOJtq9BovUodWYyscUe9204Ll7JMGgBKezwtWQ8/4csu1q+I0b9TVC348A=
-  "on": 
+  "on":
     tags: true
     repo: MrSwitch/esi
     all_branches: true
