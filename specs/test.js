@@ -6,7 +6,12 @@ var ESI = require('../src/esi.js');
 
 var ESIConnect = require('../index.js');
 
-var expect = require('expect.js');
+var chai = require("chai");
+var chaiAsPromised = require("chai-as-promised");
+
+chai.use(chaiAsPromised);
+
+var expect = chai.expect;
 
 
 //
