@@ -73,19 +73,13 @@ describe("ESI", function(){
 	it("should not affect regular content", function(done){
 		var str = 'text';
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( str );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( str ).and.notify(done);
 	});
 
 	it("should process open and closed tags, i.e. <esi:tag/> and <esi:tag></esi:tag>", function(done){
 		var str = '<esi:comment/><esi:comment a/><esi:comment a />ok<esi:comment>removed</esi:other></esi:comment>';
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 	});
 
 
@@ -100,10 +94,7 @@ describe("esi:assign, esi:vars and $(key)", function(){
 		str += "<esi:vars>$(test)</esi:vars>";
 
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'quote\\\'s' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'quote\\\'s' ).and.notify(done);
 	});
 
 	it("should return the value of items defined in an esi:vars `name` attribute", function(done){
@@ -112,10 +103,7 @@ describe("esi:assign, esi:vars and $(key)", function(){
 		str += "<esi:vars name=$(test)/>";
 
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 	});
 
 	it("should return nothing when unable to to match the variables", function(done){
@@ -124,143 +112,133 @@ describe("esi:assign, esi:vars and $(key)", function(){
 		str += "<esi:vars name=$(test{1})/>";
 
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( '' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( '' ).and.notify(done);
 	});
 });
 
 
+["include", "eval"].forEach(function (tagName) {
 
+	var tag = "esi:"+tagName;
 
-describe("esi:include", function(){
+	describe(tag, function(){
 
-
-	it("should be replaced with the resource defined in the `src` attribute", function(done){
-		var str = '<esi:include src="'+ localhost +'text"/>';
-		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'text' );
-			done();
-		});
-	});
-
-	it("should work indendently and handle multiple queries simultaneiously", function(done){
-		var str = '<esi:include ignore src="'+ localhost +'text1" ignorethis>\n ignore this\n </esi:include>, <esi:include ignoreme src="'+ localhost +'text2"></esi:include>,<esi:include src="'+ localhost +'text3"></esi:include>';
-		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'text1, text2,text3' );
-			done();
-		});
-	});
-
-	it("should process ESI VARS in the `src` attribute", function(done){
-		var str = '<esi:assign name="server" value="'+ localhost +'"/><esi:include src="$(server)ok"/>';
-		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
-	});
-
-	it("should use the `alt` attributes if the `src` returns an error status", function(done){
-		var str = '<esi:include src="'+ localhost + 404 + '" alt="' + localhost + 'ok"/>';
-		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
-	});
-
-	it("should process ESI VARS in the `alt` attribute", function(done){
-		var str = '<esi:assign name="server" value="'+ localhost +'"/><esi:include src="$(server)404" alt="$(server)ok"/>';
-		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
-	});
-
-
-	it("should inherit parent scope of the caller", function(done){
-		var str = '';
-		str += '<esi:assign name="test" value="ok" />';
-		str += '<esi:include src="'+ localhost + encodeURIComponent('<esi:vars>$(test)</esi:vars>') + '" dca="esi"/>';
-		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});	
-	});
-
-	it("should sandbox variables set in the response fragment", function(done){
-		var str = '';
-		str += '<esi:assign name="test" value="ok" />';
-		str += '<esi:include src="'+ localhost + encodeURIComponent('<esi:assign name="test" value="fail" />') + '" dca="esi"/>';
-		str += '<esi:include src="'+ localhost + encodeURIComponent('<esi:vars>$(test)</esi:vars>') + '" dca="esi"/>';
-		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});	
-	});
-
-
-	describe('onerror=continue', function(){
-
-
-		it("should throw an expection when the ESI fragment returns an error, and no onerror handler is specified", function(done){
-
-			var str = '<esi:include src="'+ localhost + 404 + '"></esi:include>';
+		it("should be replaced with the resource defined in the `src` attribute", function(done){
+			var str = '<' + tag + ' src="'+ localhost +'text"/>';
 			var esi = ESI( str );
-			esi.then(null, function( response ){
-				done();
+			expect(esi).to.eventually.be.eql( 'text' ).and.notify(done);
+		});
+
+		it("should work independently and handle multiple queries simultaneiously", function(done){
+			var str = '<' + tag + ' ignore src="'+ localhost +'text1" ignorethis>\n ignore this\n </' + tag + '>, <' + tag + ' ignoreme src="'+ localhost +'text2"></' + tag + '>,<' + tag + ' src="'+ localhost +'text3"></' + tag + '>';
+			var esi = ESI( str );
+			expect(esi).to.eventually.be.eql( 'text1, text2,text3' ).and.notify(done);
+		});
+
+		it("should process ESI VARS in the `src` attribute", function(done){
+			var str = '<esi:assign name="server" value="'+ localhost +'"/>' + '<' + tag + ' src="$(server)ok"/>';
+			var esi = ESI( str );
+			expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
+		});
+
+		if (tagName === 'include') {
+
+			it("should use the `alt` attributes if the `src` returns an error status", function(done){
+				var str = '<' + tag + ' src="'+ localhost + 404 + '" alt="' + localhost + 'ok"/>';
+				var esi = ESI( str );
+				expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 			});
-		});
 
-		it("should catch errors and pass through an empty string if attribute onerror=continue is defined", function(done){
+		} else {
 
-			var str = '<esi:include src="'+ localhost + 404 + '" onerror="continue"></esi:include>ok';
-			var esi = ESI( str );
-			esi.then(function( response ){
-				expect( response ).to.be.eql( 'ok' );
-				done();
+			it("should not support the use the of the `alt` attribute", function(done){
+				var str = '<' + tag + ' src="'+ localhost + 404 + '" alt="' + localhost + 'ok"/>';
+				var esi = ESI( str );
+				expect(esi).to.eventually.be.rejectedWith(Error).and.notify(done);
 			});
+
+		}
+
+		it("should inherit parent scope of the caller", function(done){
+			var str = '';
+			str += '<esi:assign name="test" value="ok" />';
+			str += '<' + tag + ' src="'+ localhost + encodeURIComponent('<esi:vars>$(test)</esi:vars>') + '" dca="esi"/>';
+			var esi = ESI( str );
+			expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 		});
 
-	});
+		if (tagName === 'include') {
 
-	describe('dca=esi|none', function(){
-		it("should process the response fragment body as ESI if the attribute dca='esi'", function(done){
-
-			var body = "<esi:remove></esi:remove>ok";
-
-			var str = '<esi:include dca="esi" src="'+ localhost + encodeURIComponent(body) + '"></esi:include>';
-			var esi = ESI( str );
-			esi.then(function( response ){
-				expect( response ).to.be.eql( 'ok' );
-				done();
+			it("should sandbox variables set in the response fragment", function(done){
+				var str = '';
+				str += '<esi:assign name="test" value="ok" />';
+				str += '<' + tag + ' src="'+ localhost + encodeURIComponent('<esi:assign name="test" value="fail" />') + '" dca="esi"/>';
+				str += '<' + tag + ' src="'+ localhost + encodeURIComponent('<esi:vars>$(test)</esi:vars>') + '" dca="esi"/>';
+				var esi = ESI( str );
+				expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 			});
+
+		}
+
+		if (tagName === 'eval') {
+
+			it("should override variables set in parent scope", function(done){
+
+				var str = '';
+				str += '<esi:assign name="test" value="ok" />';
+				str += '<' + tag + ' src="'+ localhost + encodeURIComponent('<esi:assign name="test" value="overidden" />') + '" dca="none"/>';
+				str += '<esi:include src="'+ localhost + encodeURIComponent('<esi:vars>$(test)</esi:vars>') + '" dca="esi"/>';
+				var esi = ESI( str );
+
+				expect(esi).to.eventually.be.eql( 'overidden' ).and.notify(done);
+
+			});
+
+		}
+
+		describe('onerror=continue', function(){
+
+
+			it("should throw an expection when the ESI fragment returns an error, and no onerror handler is specified", function(done){
+
+				var str = '<' + tag + ' src="'+ localhost + 404 + '"></' + tag + '>';
+				var esi = ESI( str );
+				esi.then(null, function( response ){
+					done();
+				});
+			});
+
+			it("should catch errors and pass through an empty string if attribute onerror=continue is defined", function(done){
+
+				var str = '<' + tag + ' src="'+ localhost + 404 + '" onerror="continue"></' + tag + '>ok';
+				var esi = ESI( str );
+				expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
+			});
+
 		});
 
-		it("should not process the response fragment body as ESI if the attribute dca!='esi'", function(done){
+		describe('dca=esi|none', function(){
+			it("should process the response fragment body as ESI if the attribute dca='esi'", function(done){
 
-			var body = "<esi:remove></esi:remove>";
+				var body = "<esi:remove></esi:remove>ok";
 
-			var str = '<esi:include src="'+ localhost + encodeURIComponent(body) + '"></esi:include>';
-			var esi = ESI( str );
-			esi.then(function( response ){
-				expect( response ).to.be.eql( body );
-				done();
+				var str = '<' + tag + ' dca="esi" src="'+ localhost + encodeURIComponent(body) + '"></' + tag + '>';
+				var esi = ESI( str );
+				expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
+			});
+
+			it("should not process the response fragment body as ESI if the attribute dca!='esi'", function(done){
+
+				var body = "<esi:remove></esi:remove>";
+
+				var str = '<' + tag + ' src="'+ localhost + encodeURIComponent(body) + '"></' + tag + '>';
+				var esi = ESI( str );
+				expect(esi).to.eventually.be.eql( body ).and.notify(done);
 			});
 		});
 	});
+
 });
-
-
-
-
 
 //
 // If an endpoint returns a 404 then esi:try will set the fallback
@@ -271,10 +249,7 @@ describe('esi:try', function(){
 
 		var str = '<esi:try><esi:attempt><esi:include src="'+ localhost + 'ok"></esi:include></esi:attempt><esi:except>fail</esi:except></esi:try>';
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 
 	});
 
@@ -282,10 +257,7 @@ describe('esi:try', function(){
 
 		var str = '<esi:try><esi:attempt><esi:include src="'+ localhost + 404 + '"></esi:include></esi:attempt><esi:except>ok</esi:except></esi:try>';
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 
 	});
 
@@ -303,10 +275,7 @@ describe("esi:remove", function(){
 	it("should remove the esi:remove block from the text", function(done){
 		var str = '<esi:remove> not </esi:remove>ok';
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 	});
 
 });
@@ -319,20 +288,14 @@ describe("<!--esi --> comment tag", function(){
 	it("should clip the esi comments tags from around the text inside", function(done){
 		var str = 'should<!--esi always -->appear';
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'should always appear' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'should always appear' ).and.notify(done);
 	});
 
 
 	it("should process the ESI content within the esi comment tag, e.g esi:* and $(key)", function(done){
 		var str = 'should<!--esi <esi:assign name=key value=always/>$(key) -->appear';
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'should always appear' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'should always appear' ).and.notify(done);
 	});
 
 });
@@ -345,10 +308,7 @@ describe("esi:text", function(){
 		var text = "$(document)<esi:comment>This would normally get stripped</esi:comment>";
 		var str = '<esi:assign name="document" value="ok"/>'+text+'<esi:text>'+text+'</esi:text>';
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' + text );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' + text ).and.notify(done);
 	});
 
 });
@@ -376,10 +336,7 @@ describe("esi:choose", function(){
 				var esi = ESI( str, null, {
 					HTTP_HOST : 'localhost'
 				} );
-				esi.then(function( response ){
-					expect( response ).to.be.eql( 'ok' );
-					done();
-				});
+				expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 			});
 		});
 
@@ -399,10 +356,7 @@ describe("esi:choose", function(){
 				var esi = ESI( str, null, {
 					HTTP_HOST : 'localhost'
 				} );
-				esi.then(function( response ){
-					expect( response ).to.be.eql( 'ok' );
-					done();
-				});
+				expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 			});
 		});
 	});
@@ -419,10 +373,7 @@ describe("esi:choose", function(){
 			HTTP_HOST : 'localok'
 		});
 
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 	});
 
 
@@ -440,10 +391,7 @@ describe("esi:choose", function(){
 				HTTP_HOST : 'localok'
 			});
 
-			esi.then(function( response ){
-				expect( response ).to.be.eql( 'ok' );
-				done();
-			});
+			expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 		});
 
 
@@ -457,10 +405,7 @@ describe("esi:choose", function(){
 				HTTP_HOST : 'localok'
 			});
 
-			esi.then(function( response ){
-				expect( response ).to.be.eql( 'ok' );
-				done();
-			});
+			expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 		});
 	});
 });
