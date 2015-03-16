@@ -57,11 +57,11 @@ View [the ESI specs](https://travis-ci.org/MrSwitch/esi) or from the install dir
 
 # Options
 
-Debug - prints out the tag handling
+debug - prints out the tag handling
 
     esi.debug = true;
 
 
-VARS - set/modify environment variables
+vars - set/modify environment variables
 
     esi.vars.HTTP_HOST = 'www.google.com';
