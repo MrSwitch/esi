@@ -22,6 +22,8 @@ module.exports = ESI;
 
 function ESI( body, encoding, VARS ){
 
+	VARS = VARS || {};
+
 	// Format incoming
 
 	if( typeof (body) !== 'string' ){
@@ -42,7 +44,7 @@ function ESI( body, encoding, VARS ){
 
 
 	// Create the mother of all promises, to process all the child operations into a single resolve.
-	
+
 	return Promise.all(parts).then(function(response){
 
 		// Once all these have returned we can merge the parts together
@@ -50,13 +52,17 @@ function ESI( body, encoding, VARS ){
 	});
 }
 
+// Setup handlers for include & eval
 
-
+var processESIInclude	= processESIFragment.bind(null, false);
+var processESIEval		= processESIFragment.bind(null, true);
 
 // Process ESI tags
 // Given a section of the body string, if it is a esi tag process it and return a Promise object, otherwise return a string.
 
-function processESITags(str){
+function processESITags(str, allowedTags, context){
+
+	allowedTags = allowedTags || [];
 
 	// Get Tag Attributes in an object
 
@@ -77,13 +83,30 @@ function processESITags(str){
 	var attrs = getAttributes(m[2]);
 	var body = m[3];
 
+	var skipTag = allowedTags.length && allowedTags.indexOf(tag) === -1;
 
+	if (skipTag) {
+
+		console.log(tag);
+
+		context = context ? 'not allowed in context of ' + context : 'not allowed';
+
+		// Warn
+		log( log.WARN, tag, context );
+
+		return str;
+
+	}
 
 	switch(tag){
 
 		// Replaces the content
 		case 'esi:include':
 			return processESIInclude( attrs, body, this );
+
+			// Replaces the content
+			case 'esi:eval':
+				return processESIEval( attrs, body, this );
 
 		// Replaces the content
 		case 'esi:try':
@@ -172,22 +195,23 @@ function processESITags(str){
 
 
 //
-// Process ESI include
+// Process ESI Fragment ( esi:include || esi:eval )
 //
 
-function processESIInclude(attrs, body, VARS){
+function processESIFragment(evaluate, attrs, body, VARS){
 
+	var tag = 'esi:' + ( evaluate ? 'eval' : 'include' );
 
 	// Clone the VARS
 	// Set the prototype
-	VARS = Object.create(VARS||{});
-
+	VARS = VARS||{};
+	VARS = evaluate ? VARS : Object.create(VARS);
 
 	if( !attrs.src ){
 
 		// Urgh this should have contained a src attibute
 		// Just spit it back, its not in a correct format
-		log( log.FAIL, 'esi:include', 'Missing src attribute' );
+		log( log.FAIL, tag, 'Missing src attribute' );
 		return '';
 	}
 
@@ -213,9 +237,9 @@ function processESIInclude(attrs, body, VARS){
 			// The response returned a responseState greater than 400
 			// Is there an alternative path?
 
-			if( attrs.alt ){
+			if( attrs.alt && !evaluate ){
 
-				log( log.WARN, 'esi:include', err );
+				log( log.WARN, tag, err );
 
 				// Make the request again
 
@@ -236,13 +260,16 @@ function processESIInclude(attrs, body, VARS){
 	// If all else fails
 	.then(function(body){
 
-			log( log.INFO, 'esi:include', src );
+			log( log.INFO, tag, src );
 
 			// Run the Response back through ESI?
 			if(attrs.dca === 'esi'){
 				return ESI( body, null, VARS );
 			}
-			else {
+			// Evaluate the fragment & propage VARS to parent scope
+			else if ( evaluate ) {
+				return processESITags.bind( VARS )( body, ['esi:assign'], 'eval');
+			} else {
 				return body;
 			}
 
@@ -250,14 +277,15 @@ function processESIInclude(attrs, body, VARS){
 		function(err){
 
 			// The response returned a responseState greater than 400
-			log( log.FAIL, 'esi:include', err );
+			log( log.FAIL, tag, err );
 
 			if( attrs.onerror === "continue" ){
 				// return an empty string
 				return '';
-			}
-			else{
-				throw err;
+			} else if ( attrs.alt && evaluate ) {
+				throw new Error('The alt attribute is not supported for esi:eval');
+			} else {
+				throw new Error('Unable to process fragment: ' + err);
 			}
 		}
 	);
@@ -504,7 +532,9 @@ function getAttributes(str, undefined){
 
 	var m,r={};
 	while((m = reg_attrs.exec(str))){
-		r[m[1]] = ( m[5] !== undefined ? m[5] : m[3] );
+		if (m[1] !== 'undefined') {
+			r[m[1]] = ( m[5] !== undefined ? m[5] : m[3] );
+		}
 	}
 
 	return r;
@@ -517,7 +547,9 @@ function getAttributes(str, undefined){
 var reg_esi_variable = /\$\((.*?)(?:\{([\d\w]+)\})?\)/g;
 
 function DictionaryReplace(str, hash){
+
 	return str.replace( reg_esi_variable, function (m, key, subkey){
+
 		if(key in hash){
 			var val = hash[key];
 			if( subkey ){
