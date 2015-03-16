@@ -7,10 +7,8 @@ describe('esi:try', function(){
 
 		var str = '<esi:try><esi:attempt><esi:include src="'+ localhost + 'ok"></esi:include></esi:attempt><esi:except>fail</esi:except></esi:try>';
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
+
 
 	});
 
@@ -18,10 +16,8 @@ describe('esi:try', function(){
 
 		var str = '<esi:try><esi:attempt><esi:include src="'+ localhost + 404 + '"></esi:include></esi:attempt><esi:except>ok</esi:except></esi:try>';
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
+
 
 	});
 

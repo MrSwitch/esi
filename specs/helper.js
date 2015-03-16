@@ -1,6 +1,11 @@
 // Set global 
 global.ESI = require('../src/esi.js');
-global.expect = require('expect.js');
+
+// Expect
+var chai = require("chai");
+var chaiAsPromised = require("chai-as-promised");
+chai.use( chaiAsPromised );
+global.expect = chai.expect;
 
 // Set a local server to return
 var connect = require('connect');

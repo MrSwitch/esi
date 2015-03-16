@@ -19,10 +19,8 @@ describe("esi:choose", function(){
 				var esi = ESI( str, null, {
 					HTTP_HOST : 'localhost'
 				} );
-				esi.then(function( response ){
-					expect( response ).to.be.eql( 'ok' );
-					done();
-				});
+
+				expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 			});
 		});
 
@@ -42,10 +40,7 @@ describe("esi:choose", function(){
 				var esi = ESI( str, null, {
 					HTTP_HOST : 'localhost'
 				} );
-				esi.then(function( response ){
-					expect( response ).to.be.eql( 'ok' );
-					done();
-				});
+				expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 			});
 		});
 	});
@@ -62,10 +57,7 @@ describe("esi:choose", function(){
 			HTTP_HOST : 'localok'
 		});
 
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 	});
 
 
@@ -83,10 +75,7 @@ describe("esi:choose", function(){
 				HTTP_HOST : 'localok'
 			});
 
-			esi.then(function( response ){
-				expect( response ).to.be.eql( 'ok' );
-				done();
-			});
+			expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 		});
 
 
@@ -100,10 +89,7 @@ describe("esi:choose", function(){
 				HTTP_HOST : 'localok'
 			});
 
-			esi.then(function( response ){
-				expect( response ).to.be.eql( 'ok' );
-				done();
-			});
+			expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 		});
 	});
 

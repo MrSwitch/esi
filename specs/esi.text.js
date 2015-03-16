@@ -7,10 +7,7 @@ describe("esi:text", function(){
 		var text = "$(document)<esi:comment>This would normally get stripped</esi:comment>";
 		var str = '<esi:assign name="document" value="ok"/>'+text+'<esi:text>'+text+'</esi:text>';
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' + text );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' + text ).and.notify(done);
 	});
 
 });

@@ -9,10 +9,7 @@ describe("esi:assign, esi:vars and $(key)", function(){
 		str += "<esi:vars>$(test)</esi:vars>";
 
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'quote\\\'s' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'quote\\\'s' ).and.notify(done);
 	});
 
 	it("should return the value of items defined in an esi:vars `name` attribute", function(done){
@@ -21,10 +18,8 @@ describe("esi:assign, esi:vars and $(key)", function(){
 		str += "<esi:vars name=$(test)/>";
 
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( 'ok' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
+
 	});
 
 	it("should return nothing when unable to to match the variables", function(done){
@@ -33,10 +28,7 @@ describe("esi:assign, esi:vars and $(key)", function(){
 		str += "<esi:vars name=$(test{1})/>";
 
 		var esi = ESI( str );
-		esi.then(function( response ){
-			expect( response ).to.be.eql( '' );
-			done();
-		});
+		expect(esi).to.eventually.be.eql( '' ).and.notify(done);
 	});
 
 });
