@@ -546,7 +546,7 @@ function getAttributes(str, undefined){
 //
 var reg_esi_variable = /\$\((.*?)(?:\{([\d\w]+)\})?\)/g;
 
-function DictionaryReplace(str, hash, hoist){
+function DictionaryReplace(str, hash){
 
 	return str.replace( reg_esi_variable, function (m, key, subkey){
 
