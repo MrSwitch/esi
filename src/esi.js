@@ -12,15 +12,46 @@ var http = require('http');
 var reg_esi_tag = /<(esi\:[a-z]+)\b([^>]+[^\/>])?(?:\/|>([\s\S]*?)<\/\1)>/i;
 var reg_esi_comments = /<\!--esi\b([\s\S]*?)-->/gi;
 
+
 module.exports = ESI;
 
+// Expose functions
+ESI.fn = {};
+ESI.fn['esi:include'] = processESIInclude;
+ESI.fn['esi:try']     = processESITry;
+ESI.fn['esi:vars']    = processESIVars;
+ESI.fn['esi:choose']  = processESIChoose;
+ESI.fn['esi:when']    = processESIWhen;
+ESI.fn['esi:otherwise']= processESIOtherwise;
+ESI.fn['esi:assign']  = processESIAssign;
+ESI.fn['esi:text']    = processESIText;
+ESI.fn['esi:comment'] = processESIComment;
+ESI.fn['esi:remove']  = processESIComment;
+
+module.exports.request = request;
 
 
 // The main point of entry
 // Given an body of text, break it down into strings and Promise objects
 // @return Promise
 
-function ESI( body, encoding, VARS ){
+function ESI( body, encoding, scope ){
+
+	scope = scope || {};
+
+	// Does a parent Promise exist on this instance?
+	if( !(this instanceof ESI) ){
+		return new ESI(body, encoding, scope);
+	}
+
+
+	// Does a parent Promise exist on this instance?
+	if( !this.promise ){
+
+		log( log.INFO, 'Promise.resolve' );
+		this.promise = Promise.resolve();
+	}
+
 
 	// Format incoming
 
@@ -37,7 +68,7 @@ function ESI( body, encoding, VARS ){
 	// Split the current string into parts, some including the ESI fragment and then the bits in between
 	// Loop through and process each of the ESI fragments, mapping them back to a parts array containing strings and the Promise objects
 
-	var parts = splitText( body ).map( processESITags.bind(VARS) );
+	var parts = splitText( body ).map( processESITags.bind( this, scope ) );
 
 
 
@@ -56,7 +87,7 @@ function ESI( body, encoding, VARS ){
 // Process ESI tags
 // Given a section of the body string, if it is a esi tag process it and return a Promise object, otherwise return a string.
 
-function processESITags(str){
+function processESITags(scope, str){
 
 	// Get Tag Attributes in an object
 
@@ -67,7 +98,7 @@ function processESITags(str){
 	if( !m ){
 		// Are there any items in here which are in the local dictionary
 		// Do a quick dictionary replace and spit it back
-		return DictionaryReplace( str, this );
+		return DictionaryReplace( str, scope );
 	}
 
 
@@ -77,95 +108,11 @@ function processESITags(str){
 	var attrs = getAttributes(m[2]);
 	var body = m[3];
 
-
-
-	switch(tag){
-
-		// Replaces the content
-		case 'esi:include':
-			return processESIInclude( attrs, body, this );
-
-		// Replaces the content
-		case 'esi:try':
-			return processESITry( body, this );
-
-		// Apply variables to the block
-		case 'esi:vars':
-			return processESIVars( attrs, body, this );
-
-		// Call the esi:choose as a block
-		case 'esi:choose':
-			// ESI
-			var r = ESI( body, null, this );
-
-			// RESET MATCHES
-			if( this.hasOwnProperty('MATCHES') ){
-				delete this.MATCHES;
-			}
-			return r;
-
-		// Check
-		case 'esi:when':
-			// Has the matches already returned a result?
-			if( !this.hasOwnProperty('MATCHES') ){
-				// Run the test
-
-				var result = processESICondition( attrs.test, this );
-				if( result ){
-					// Store the result into a variable called matches
-					// This is used to infer that a match was successful
-					this.MATCHES = result;
-
-					// Has a label been assigned to the MATCHES
-					if( attrs.matchname ){
-						this[ attrs.matchname ] = result;
-					}
-
-					log( log.INFO, 'esi:when', attrs.test );
-
-					// Execute this block of code
-					return ESI( body, null, this );
-				}
-			}
-			// Otherwise lets not include this block in the response
-			return '';
-
-		case 'esi:otherwise':
-
-			// Has the previous esi:when condition already matched?
-			if( this.hasOwnProperty('MATCHES') ){
-				return '';
-			}
-
-			log( log.INFO, 'esi:otherwise' );
-
-			// Otherwise, process the esi:otherwise block
-			return ESI( body, null, this );
-
-		case 'esi:assign':
-
-			log( log.INFO, 'esi:assign', attrs.name + ' = ' + attrs.value );
-
-			// Add to the dictionary
-			this[attrs.name] = processESIExpression( attrs.value, this );
-
-			return '';
-
-		case 'esi:text':
-
-			return body;
-
-		case 'esi:comment':
-		case 'esi:remove':
-			// All else, return empty string...
-			log( log.INFO, tag, 'expunged' );
-			return '';
+	if( tag in ESI.fn ){
+		log( log.WARN, tag, JSON.stringify(attrs), JSON.stringify(scope) );
+		return ESI.fn[tag].call( this, attrs, body, scope )
 	}
 
-	// Warn
-	log( log.WARN, tag, 'unrecognised' );
-
-	// All else, return empty string...
 	return str;
 }
 
@@ -175,34 +122,34 @@ function processESITags(str){
 // Process ESI include
 //
 
-function processESIInclude(attrs, body, VARS){
+function processESIInclude(attrs, body, scope){
 
-
-	// Clone the VARS
-	// Set the prototype
-	VARS = Object.create(VARS||{});
-
-
-	if( !attrs.src ){
-
-		// Urgh this should have contained a src attibute
-		// Just spit it back, its not in a correct format
-		log( log.FAIL, 'esi:include', 'Missing src attribute' );
-		return '';
-	}
-
-	// Set the src
-	var src = attrs.src;
+	var self = this;
 
 	// Replace the section with a new Promise object for this tag and add it to the Promise Array
 
-	return new Promise(function( resolve, reject ){
+	return this.promise.then( function(){
+
+		// Clone the scope
+		// Set the prototype
+		scope = Object.create(scope||{});
+
+
+		if( !attrs.src ){
+
+			// Urgh this should have contained a src attibute
+			// Just spit it back, its not in a correct format
+			log( log.FAIL, 'esi:include', 'Missing src attribute' );
+			return '';
+		}
+
+		// Set the src
+		var src = attrs.src;
 
 		// Make request
-		src = DictionaryReplace( attrs.src, VARS );
+		src = DictionaryReplace( attrs.src, scope );
 
-		makeRequest( src, resolve, reject );
-
+		return fetch( src );
 	})
 
 	// If this fails, check for an alt attribute
@@ -218,14 +165,9 @@ function processESIInclude(attrs, body, VARS){
 				log( log.WARN, 'esi:include', err );
 
 				// Make the request again
+				src = DictionaryReplace( attrs.alt, scope );
 
-				return new Promise( function( resolve, reject ){
-
-					src = DictionaryReplace( attrs.alt, VARS );
-
-					makeRequest( src, resolve, reject );
-
-				});
+				return fetch( src );
 			}
 
 			// Nope continue with error
@@ -236,11 +178,11 @@ function processESIInclude(attrs, body, VARS){
 	// If all else fails
 	.then(function(body){
 
-			log( log.INFO, 'esi:include', src );
+			log( log.INFO, 'esi:include', body );
 
 			// Run the Response back through ESI?
 			if(attrs.dca === 'esi'){
-				return ESI( body, null, VARS );
+				return ESI.call( self, body, null, scope );
 			}
 			else {
 				return body;
@@ -268,7 +210,7 @@ function processESIInclude(attrs, body, VARS){
 // Run the contents of the ESI attempt block
 //
 
-function processESITry( body, VARS ){
+function processESITry( attrs, body, scope ){
 
 	// Seperate out the contents of the esi:try block to be esi:attempt and esi:except
 
@@ -298,13 +240,14 @@ function processESITry( body, VARS ){
 	log( log.INFO, 'esi:attempt' );
 
 	// Run through esi processing
+	var self = this;
 
-	return ESI( attempt, null, VARS ).then( null, function(){
+	return ESI.call( this, attempt, null, scope ).then( null, function(){
 
 		log( log.WARN, 'esi:except' );
 
 		// Should that fail, return the except
-		return ESI( except, null, VARS );
+		return ESI.call( self, except, null, scope );
 
 	});
 
@@ -315,17 +258,97 @@ function processESITry( body, VARS ){
 
 // Process ESI Vars
 
-function processESIVars(attrs, body, VARS){
+function processESIVars(attrs, body, scope){
 
-	log( log.INFO, 'esi:vars' );
+	var self = this;
 
-	if( !body && attrs.name ){
-		return DictionaryReplace( attrs.name, VARS );
-	}
+	return this.promise.then(function(){
 
-	return ESI(body, null, VARS);
+		log( log.INFO, 'esi:vars', JSON.stringify(scope) );
+
+		if( !body && attrs.name ){
+			return DictionaryReplace( attrs.name, scope );
+		}
+
+		return ESI.call(self, body, null, scope);
+	});
 }
 
+
+
+function processESIChoose(attrs, body, scope){
+	// ESI
+	var r = ESI.call( this, body, null, scope );
+
+	// RESET MATCHES
+	if( scope.hasOwnProperty('MATCHES') ){
+		delete scope.MATCHES;
+	}
+	return r;
+}
+
+
+
+function processESIWhen(attrs, body, scope){
+
+	// Has the matches already returned a result?
+	if( !scope.hasOwnProperty('MATCHES') ){
+		// Run the test
+
+		var result = processESICondition( attrs.test, scope );
+		if( result ){
+			// Store the result into a variable called matches
+			// This is used to infer that a match was successful
+			scope.MATCHES = result;
+
+			// Has a label been assigned to the MATCHES
+			if( attrs.matchname ){
+				scope[ attrs.matchname ] = result;
+			}
+
+			log( log.INFO, 'esi:when', attrs.test );
+
+			// Execute this block of code
+			return ESI.call( this, body, null, scope );
+		}
+	}
+	// Otherwise lets not include this block in the response
+	return '';
+
+}
+
+
+function processESIOtherwise(attrs, body, scope){
+	// Has the previous esi:when condition already matched?
+	if( scope.hasOwnProperty('MATCHES') ){
+		return '';
+	}
+
+	log( log.INFO, 'esi:otherwise' );
+
+	// Otherwise, process the esi:otherwise block
+	return ESI.call( this, body, null, scope );
+}
+
+
+function processESIAssign(attrs, body, scope){
+	log( log.INFO, 'esi:assign', attrs.name + ' = ' + attrs.value );
+
+	// Add to the dictionary
+	scope[attrs.name] = processESIExpression( attrs.value, scope );
+
+	return '';
+}
+
+
+function processESIText(attrs, body, scope){
+	return body;
+}
+
+
+function processESIComment(attrs, body, scope){
+	return '';
+}
 
 
 // Process a conditiional test
@@ -333,7 +356,7 @@ var reg_trim = /(^\s+|\s+$)/;
 var reg_esi_condition = /^(.*?)\s+(=|==|<=|>=|matches|matches_i|has|has_i)\s+('''|)(.*?)\3$/;
 var reg_esi_condition_separator = /\s+(\|\||\&\&)\s+/g;
 
-function processESICondition( test, VARS ){
+function processESICondition( test, scope ){
 
 	// There can be mmultiple tests
 	var tests = test.split(reg_esi_condition_separator);
@@ -364,14 +387,14 @@ function processESICondition( test, VARS ){
 		// Boolean condition
 		if( !m ){
 
-			bool = !!DictionaryReplace( test, VARS );
+			bool = !!DictionaryReplace( test, scope );
 		}
 		else{
 
 			// Comparison Operators
-			var a = DictionaryReplace( m[1], VARS );
+			var a = DictionaryReplace( m[1], scope );
 			var operator = m[2];
-			var b = DictionaryReplace( m[4], VARS );
+			var b = DictionaryReplace( m[4], scope );
 
 			// Compare the two
 			switch(operator){
@@ -416,7 +439,7 @@ function processESICondition( test, VARS ){
 
 // Process ESI Expression
 
-function processESIExpression(txt, VARS){
+function processESIExpression(txt, scope){
 
 	// Tidy
 	if( !txt && txt.length === 0 ){
@@ -426,32 +449,40 @@ function processESIExpression(txt, VARS){
 		return txt.replace(/^\'|\'$/g,'');
 	}
 
-	return DictionaryReplace( txt, VARS );
+	return DictionaryReplace( txt, scope );
 
 }
 
 
 // Make an HTTP request for a resource
 
-function makeRequest( url, resolve, reject ){
+function fetch( url ){
 
-	//log( log.INFO, url );
+	var promise = new Promise(function( resolve, reject ){
 
-	// Get the resource
+		// Get the resource
+		module.exports.request( url, function(err, res, body){
+
+			if( err || res.statusCode >= 400 ){
+				reject( url );
+				return;
+			}
+
+			// Resolve the content
+			resolve( body );
+		});
+
+	});
+
+	return promise;
+}
+
+
+function request( url, callback ){
 
 	http.get( url, function(res){
 
 		var body='';
-
-		// Reject the promise if the response Code is >= 400
-
-		if(res.statusCode >= 400){
-
-			reject( url );
-
-			return;
-		}
-
 
 		// If not read the data and pass through ESI
 
@@ -460,18 +491,14 @@ function makeRequest( url, resolve, reject ){
 		});
 
 		res.on('end', function(){
-
-			// Resolve the content
-			resolve( body );
-
+			callback( null, res, body );
 		});
 
 	}).on('error', function(e){
 
-		reject( url );
+		callback( e );
 	});
 }
-
 
 
 var reg_esi_tag_global = new RegExp(reg_esi_tag.source, 'gi');

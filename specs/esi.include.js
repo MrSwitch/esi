@@ -1,10 +1,7 @@
 require('./helper');
 
 
-
 describe("esi:include", function(){
-
-
 
 	it("should be replaced with the resource defined in the `src` attribute", function(done){
 		var str = '<esi:include src="'+ localhost +'ok"/>';
