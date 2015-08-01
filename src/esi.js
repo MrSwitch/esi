@@ -98,7 +98,9 @@ function processESITags(scope, str){
 	if( !m ){
 		// Are there any items in here which are in the local dictionary
 		// Do a quick dictionary replace and spit it back
-		return DictionaryReplace( str, scope );
+		return this.promise.then(function(){
+			return DictionaryReplace( str, scope );
+		});
 	}
 
 
@@ -278,8 +280,13 @@ function processESIVars(attrs, body, scope){
 
 function processESIChoose(attrs, body, scope){
 	// ESI
-	var r = ESI.call( this, body, null, scope );
-
+	var r = ESI.call( this, body, null, scope ).then(function(r){
+		// RESET MATCHES
+		if( scope.hasOwnProperty('MATCHES') ){
+			delete scope.MATCHES;
+		}
+		return r;
+	});
 	// RESET MATCHES
 	if( scope.hasOwnProperty('MATCHES') ){
 		delete scope.MATCHES;
@@ -555,9 +562,6 @@ function DictionaryReplace(str, hash){
 		return '';
 	});
 }
-
-
-
 
 
 

@@ -1,5 +1,6 @@
 // Set global 
 global.ESI = require('../src/esi.js');
+ESI.debug = true;
 
 // Expect
 var chai = require("chai");

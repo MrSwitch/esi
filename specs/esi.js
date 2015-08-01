@@ -64,10 +64,11 @@ describe("ESI", function(){
 			expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
 		});
 
-		it("should pause the entire chain", function(done){
-			var str = '<esi:vars><esi:pause delay=100 content="fail"/></esi:vars><esi:vars>$(content)</esi:vars>ok';
-			var esi = ESI( str );
-			expect(esi).to.eventually.be.eql( 'ok' ).and.notify(done);
+		it("should delay only the scoped chain", function(done){
+			var str = '<esi:vars><esi:pause delay=100 content="it is "/>$(content)</esi:vars>';
+			str += '<esi:vars>$(content)</esi:vars>';
+			var esi = ESI( str, null, {content:'ok'} );
+			expect(esi).to.eventually.be.eql( 'it is ok' ).and.notify(done);
 		});
 	});
 

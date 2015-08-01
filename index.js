@@ -14,7 +14,7 @@ var URL =  require('url');
 //
 module.exports = function( req, res, next ){
 
-	// Set debug level in module	
+	// Set debug level in module
 	ESI.debug = module.exports.debug;
 
 	// Define the VARS which will be passed

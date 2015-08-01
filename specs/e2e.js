@@ -2,7 +2,7 @@ require('./helper');
 
 
 var ESIConnect = require('../index.js');
-
+ESIConnect.debug = true;
 
 //
 // SETUP DUMMY SERVER
