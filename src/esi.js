@@ -20,8 +20,9 @@ module.exports = ESI;
 // Given an body of text, break it down into strings and Promise objects
 // @return Promise
 
-function ESI( body, encoding, VARS ){
-
+function ESI( body, encoding, VARS, isInEsiTag ){
+	// By default, `isInEsiTag` will be true.
+	var isInEsiTag = typeof isInEsiTag !== 'undefined' ? isInEsiTag : true;
 	// Format incoming
 
 	if( typeof (body) !== 'string' ){
@@ -36,13 +37,16 @@ function ESI( body, encoding, VARS ){
 
 	// Split the current string into parts, some including the ESI fragment and then the bits in between
 	// Loop through and process each of the ESI fragments, mapping them back to a parts array containing strings and the Promise objects
-
-	var parts = splitText( body ).map( processESITags.bind(VARS) );
-
-
+	var parts = splitText( body ).map(function(splittedBody) {
+		// Only process ESI tags for matching regex or if current body is in previous ESI tag.
+		if(isInEsiTag || splittedBody.match(reg_esi_tag)) {
+			return processESITags.bind(VARS)(splittedBody);
+		}
+		return splittedBody;
+	});
 
 	// Create the mother of all promises, to process all the child operations into a single resolve.
-	
+
 	return Promise.all(parts).then(function(response){
 
 		// Once all these have returned we can merge the parts together
