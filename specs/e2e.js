@@ -87,6 +87,22 @@ describe("ESI via webserver", function(){
 	});
 
 
+
+	it("should replace only in esi tags", function(done){
+
+		// Assign custom variables
+		ESIConnect.vars.customOk = 'ok';
+		ESIConnect.vars.customGood = 'good';
+
+		var snipet = 'foo<esi:vars>$(customOk)</esi:vars>bar<esi:vars>$(customGood)</esi:vars>';
+
+		request(testCDN)
+			.get('/'+snipet)
+			.expect(200, 'foookbargood' )
+			.end(done);
+	});
+
+
 	describe("should assign default HTTP VARS", function(){
 
 		[

@@ -14,7 +14,7 @@ var URL =  require('url');
 //
 module.exports = function( req, res, next ){
 
-	// Set debug level in module	
+	// Set debug level in module
 	ESI.debug = module.exports.debug;
 
 	// Define the VARS which will be passed
@@ -64,7 +64,7 @@ module.exports = function( req, res, next ){
 			esi.then( null, function(e){
 
 				// on error
-				// Write nothing out 
+				// Write nothing out
 				return '';
 
 			}).then( function( r ){
@@ -109,8 +109,7 @@ module.exports = function( req, res, next ){
 			res.removeHeader('content-length');
 
 		// Does this have an ESI fragment
-
-		var esi = ESI( chunk, encoding, VARS );
+		var esi = ESI( chunk, encoding, VARS, false );
 
 
 		// Push the request into a queue
@@ -129,7 +128,7 @@ module.exports = function( req, res, next ){
 	res.end = function( data, encoding ){
 
 		ended = true;
-		
+
 		// resuse overriden res.write
 		res.write( data, encoding );
 
